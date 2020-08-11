@@ -5,13 +5,15 @@
 - *Person who creates pull request SHOULD NOT merge own pull request*
 
 ## Formatting a pull request
-ADD image here ???
 
+<img src="PR_example.png"
+     alt="Pull Request Example"
+     style="float: left; margin-right: 10px;" />
 
----
+<p>&nbsp;</p>
+
 ## Description
 1 - 2 sentences describing purpose of pull request
-
 
 ## Link to Trello Card
 Provided link [here]
