@@ -5,8 +5,8 @@ import uvicorn
 from app.api import predict, viz
 
 app = FastAPI(
-    title='YOUR-PRODUCT-TEAM-NAME DS API',
-    description='Replace this placeholder text',
+    title='saverlife-a',
+    description='DS API containing endpoints that provide visualizations and predictions (in JSON).',
     version='0.1',
     docs_url='/',
 )
