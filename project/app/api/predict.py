@@ -56,34 +56,6 @@ class Budget(BaseModel):
         return value
 
 
-@router.post('/predict')
-async def predict(item: Item):
-    """
-    Make random baseline predictions for classification problem 🔮
-
-    ### Request Body
-    - `x1`: positive float
-    - `x2`: integer
-    - `x3`: string
-
-    ### Response
-    - `prediction`: boolean, at random
-    - `predict_proba`: float between 0.5 and 1.0, 
-    representing the predicted class's probability
-
-    Replace the placeholder docstring and fake predictions with your own model.
-    """
-
-    X_new = item.to_df()
-    log.info(X_new)
-    y_pred = random.choice([True, False])
-    y_pred_proba = random.random() / 2 + 0.5
-    return {
-        'prediction': y_pred,
-        'probability': y_pred_proba
-    }
-
-
 @router.post('/future_budget')
 async def future_budget(budget: Budget):
     """
