@@ -127,6 +127,60 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
     return prev
 
 
+def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
+    """
+    Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
+    
+    A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
+    An optional second threshold can be set to check whether or not the new row should be added or discarded.
+    The new row's name will default to "Misc." but can be set using the 'name' parameter.
+    By default, this function will modify the dataframe in place. Set in_place to False to disable this.
+    The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
+    with the first entry being the dataframe and the second entry being the list of discarded categories.
+    """
+
+    # Use a copy if in_place is set to false
+    if in_place == False:
+        budget_df = budget_df.copy()
+
+    # If thresholds were set to fractions, then calculate fraction of total average
+    # spending and re-assign thresholds
+    if 0 < threshold_1 < 1:
+        threshold_1 *= budget_df['mean'].sum()
+    if 0 < threshold_2 < 1:
+        threshold_2 *= budget_df['mean'].sum()
+
+    # Get budget categories
+    categories = budget_df.index
+    
+    # Track the eliminated categories and the sum of their means
+    trimmed_cats = []
+    trimmed_sum = 0
+
+    # For each category, check if the mean is below threshold_1
+    # If it is, update trimmed_cats and trimmed_sum then delete the row
+    for cat in categories:
+        mean = budget_df['mean'][cat]
+
+        if mean < threshold_1:
+            trimmed_sum += mean
+            trimmed_cats.append(cat)
+
+            budget_df.drop(index = cat, inplace=True)
+
+    # If trimmed_sum is greater than threshold_2, then we add a new row containing
+    # the sum of the means from the deleted rows
+    if trimmed_sum > threshold_2:
+        new_row = [np.NaN] * (len(budget_df.columns)-1) + [trimmed_sum]
+        budget_df.loc[name] = new_row
+
+    # If save = True, then we return both the budget_df and the deleted categories
+    if save:
+        return (budget_df, trimmed_cats)
+    
+    return budget_df
+
+
 class User():
     def __init__(self, id, transactions, name=None, show=False, hole=0):
         """
@@ -336,61 +390,6 @@ class User():
             fig.show()
 
         return fig.to_json()
-
-
-    def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
-        """
-        Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
-        
-        A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
-        An optional second threshold can be set to check whether or not the new row should be added or discarded.
-        The new row's name will default to "Misc." but can be set using the 'name' parameter.
-        By default, this function will modify the dataframe in place. Set in_place to False to disable this.
-        The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
-        with the first entry being the dataframe and the second entry being the list of discarded categories.
-        """
-
-        # Use a copy if in_place is set to false
-        if in_place == False:
-            budget_df = budget_df.copy()
-
-        # If thresholds were set to fractions, then calculate fraction of total average
-        # spending and re-assign thresholds
-        if 0 < threshold_1 < 1:
-            threshold_1 *= budget_df['mean'].sum()
-        if 0 < threshold_2 < 1:
-            threshold_2 *= budget_df['mean'].sum()
-
-        # Get budget categories
-        categories = budget_df.index
-        
-        # Track the eliminated categories and the sum of their means
-        trimmed_cats = []
-        trimmed_sum = 0
-
-        # For each category, check if the mean is below threshold_1
-        # If it is, update trimmed_cats and trimmed_sum then delete the row
-        for cat in categories:
-            mean = budget_df['mean'][cat]
-
-            if mean < threshold_1:
-                trimmed_sum += mean
-                trimmed_cats.append(cat)
-
-                budget_df.drop(index = cat, inplace=True)
-
-        # If trimmed_sum is greater than threshold_2, then we add a new row containing
-        # the sum of the means from the deleted rows
-        if trimmed_sum > threshold_2:
-            new_row = [np.NaN] * (len(budget_df.columns)-1) + [trimmed_sum]
-            budget_df.loc[name] = new_row
-
-        # If save = True, then we return both the budget_df and the deleted categories
-        if save:
-            return (budget_df, trimmed_cats)
-        
-        return budget_df
-
 
     def future_budget(self, monthly_savings_goal=50, num_months=6, weighted=True):
 
