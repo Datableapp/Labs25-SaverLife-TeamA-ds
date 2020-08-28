@@ -36,7 +36,7 @@ def get_last_time_period(transaction_df, time_period='week'):
         raise ValueError(
             f"time_period must be one of 'day, week, month, year, or all'. Got {time_period} instead.")
     # subset the data based on the time frame
-    subset = transaction_df[transaction_df['date'] >= cutoff]
+    subset = transaction_df[transaction_df['date'] > cutoff]
     # return the subsetted data
 
     return subset
@@ -212,8 +212,7 @@ class User():
 
     def categorical_spending(self, time_period='week', category='grandparent_category_name'):
         """
-        Returns jsonified plotly object which is a pie chart of recent
-        transactions for the User.
+        Returns jsonified plotly object which is a pie chart of recent transactions for the User.
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
@@ -236,25 +235,24 @@ class User():
         user_expenses = get_last_time_period(user_expenses, time_period)
 
         # for categories that fall under 5% of transactions, group them into the "Other" category
-        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'],
-                                     values=user_expenses['amount_dollars'],
-                                     hole = self.hole)])
-        
+        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'], values=user_expenses['amount_dollars'], hole = 0.8 )])
         fig.update_traces(textinfo= "percent")
-        fig.update_layout(width=1000, height=600,)
 
-        # Add title
+        # add title based on current time period being viewed
         if time_period == 'all':     
-            fig.update_layout(title={"text" : f"Spending by Category", "x":0.5,
-                                     "y":0.9},
-                              font_size=16,)
+          fig.update_layout(title={"text" : f"Spending by Category", "x":0.5, "y":0.9}, font_size=16,)
 
         else:
-            fig.update_layout(title={"text" : f"Spending by Category for the Last {time_period.capitalize()}", "x":0.5, "y":0.9},
-                              font_size=16)
+          fig.update_layout(title={"text" : f"Spending by Category for the Last {time_period.capitalize()}", "x":0.5, "y":0.9}, font_size=16,)
 
-        fig.update_traces(textposition='inside', textfont_size=14)
+        # style the hover labels
+        fig.update_layout(
+          hoverlabel=dict(
+          bgcolor="white", 
+          font_size=16, 
+          font_family="Rockwell"))
 
+        # style the legend
         fig.update_layout(
             legend=dict(
                 x=.43,
@@ -262,18 +260,20 @@ class User():
                 traceorder="normal",
                 font=dict(
                     family="sans-serif",
-                    size=12,)
-                ))
+                    size=12,)))
+
+        fig.update_traces(textposition='inside', textfont_size=14)
+
+        # update the size of the figure
+        fig.update_layout(width=1000, height=600,)
         
         if self.show:
             fig.show()
-        
         return fig.to_json()
 
     def money_flow(self, time_period='week'):
         """
-        Returns jsonified plotly object which is a line chart depicting
-        transactions over time for the User.
+        Returns jsonified plotly object which is a line chart depicting transactions over time for the User.
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
@@ -282,31 +282,62 @@ class User():
         user_transaction_subset = self.data[["date", "amount_dollars"]]
 
         # filter down to desired timeframe
-        user_transaction_subset = get_last_time_period(
-            user_transaction_subset, time_period)
+        user_transaction_subset = get_last_time_period(user_transaction_subset, time_period)
 
         # prepare data for plotting
         user_transaction_subset.set_index("date", inplace=True)
         user_transaction_subset = user_transaction_subset.sort_index()
         total_each_day = pd.DataFrame(
             user_transaction_subset['amount_dollars'].resample('D').sum())
-
         total_each_day['amount_flipped'] = total_each_day['amount_dollars'] * -1
 
-        fig = go.Figure(data=go.Scatter(x=total_each_day.index,
-                                        y=total_each_day['amount_flipped'],
-                                        marker=dict(
-                                            color='rgb(192,16,137)',
-                                            size=10,
-                                            line=dict(
-                                                color='Black',
-                                                width=2
-                                            )
-                                        ))
-                        )
+        # generate the plot figure
+        fig = go.Figure(data=go.Scatter(x=total_each_day.index, 
+                                y=total_each_day['amount_flipped'],
+                                hovertext=round(total_each_day['amount_flipped'],2),
+                                hoverinfo="text",
+                                marker=dict(
+                                color='rgb(192,16,137)',
+                                size=10,
+                                line=dict(
+                                    color='Black',
+                                    width=2
+                                  ))))
+        # style the hover labels
+        fig.update_layout(width=1000, height=500,
+                          hoverlabel=dict(
+                          namelength=-1,
+                          bgcolor="white",
+                          bordercolor='black',
+                          font_size=16, 
+                          font_family="Rockwell",
+                          ))
+        # add a horizontal line between debt and profit
+        fig.add_shape( 
+        type="line", line_color="salmon", line_width=3, opacity=0.5, line_dash="solid",
+        x0=0, x1=1, xref="paper", y0=0, y1=0, yref="y")
 
-        fig.update_layout(width=1000, height=500,)
+        # update title based on time period being viewed
+        if time_period == 'all':
+          fig.update_layout(title={"text" : f"Money Flow", "x":0.5, "y":0.9})
+                            
+        else:
 
+          fig.update_layout(title={"text" : f"Daily Net Income for the Last {time_period.capitalize()}", "x":0.5, "y":0.9})
+
+        # label and style the x and y axis                              
+        fig.update_layout(                       
+          xaxis_title='Date',
+          yaxis_title='Net Income ($)',
+          font_size=16,
+          template='presentation')
+  
+        if self.show:
+          fig.show()
+
+        return fig.to_json()
+
+        # update title based on time period being viewed
         if time_period == 'all':
             fig.update_layout(
                 title={"text": f"Money Flow", "x": 0.5, "y": 0.9},
@@ -334,13 +365,13 @@ class User():
         Returns jsonified plotly object which is a bar chart of recent transactions for the User.
 
         Parameters:
-            time_period (str): time frame used to define "recent" transactions
-            category (str): category type to return
-                            (grandparent_category_name (default),
-                            parent_category_name,
-                            category_name)
+              time_period (str): time frame used to define "recent" transactions
+              category (str): category type to return
+                              (grandparent_category_name (default),
+                              parent_category_name,
+                              category_name)
         Returns:
-            Plotly object of a bar chart in json
+              Plotly object of a bar chart in json
         """
         # subset the data using the get_last_time_period method
         subset = get_last_time_period(self.expenses, time_period)
@@ -348,33 +379,30 @@ class User():
         subset[category] = subset[category].astype(str)
 
         # group the sum of a categorie's purchases by each day rather than by each transaction
-        subset = subset.groupby([category, 'date']).agg(
-            {'amount_dollars': 'sum'})
+        subset = subset.groupby([category, 'date']).agg({'amount_dollars': 'sum'})
         subset = subset.reset_index()
 
         # rename columns for cleaner visualization
-        subset.rename({category: 'Category', 'date': 'Date',
-                       'amount_dollars': 'Spending ($)'}, axis=1, inplace=True)
-
-        # generate bar chart figure
-
-      
-        fig = px.bar(
-            subset,
-            x='Date',
-            y='Spending ($)',
-            color='Category',
-            opacity=0.9,
-            width=1200,
-            height=500,
-            template='simple_white'
+        subset.rename({category:'Category', 'date': 'Date', 'amount_dollars': 'Spending ($)'}, axis=1, inplace=True)
+       
+        #generate bar chart figure
+ 
+        fig = px.bar(subset, x='Date', y='Spending ($)', 
+        color='Category',
+        opacity=0.9,
+        width=1200,
+        height=500,
+        template='simple_white'
         )
 
+        # generate titles based on time period
         if time_period == 'all':
-            fig.update_layout(title={'text': "Daily Spending by Category "})
+          fig.update_layout(title={"text" : "Daily Spending by Category"})
+        
         else:
-            fig.update_layout(title={'text': f"Daily Spending by Category for the Last {time_period.capitalize()}"})
-
+          fig.update_layout(title={"text" : f"Daily Spending by Category for the Last {time_period.capitalize()}"})
+  
+        # update legend to anchor position
         fig.update_layout(legend=dict(
             yanchor="top",
             y=1,
@@ -382,14 +410,53 @@ class User():
             x=1
         ))
 
-        fig.update_layout(font_size=15)
-        fig.update_layout(barmode='relative',)
+        # update layout for global font size and bar position
+        fig.update_layout(font_size=15,
+                          barmode='relative')
+
+        # update global title positioning
         fig.update(layout=dict(title=dict(x=0.45)))
 
+        # reshape dataframe into dict for assigning daily total annotations
+        annotations = (subset.groupby(['Date']).sum()).to_dict()
+        annotations = dict(annotations['Spending ($)'])
+
+        # resize annotations based on the time period being viewed
+        if time_period == 'week':
+          
+          for k, v in annotations.items():
+            fig.add_annotation(
+                text=f'    <b>${round(v)}</b>',
+                font_size=16,
+                x=k,
+                y=v,
+                arrowcolor='rgba(0,0,0,0)',
+            )
+        
+        if time_period == 'month':
+          
+          for k, v in annotations.items():
+            fig.add_annotation(
+                text=f'    <b>${round(v)}</b>',
+                font_size=10,
+                x=k,
+                y=v,
+                arrowcolor='rgba(0,0,0,0)',
+            )
+
+        # style the hover labels
+        fig.update_layout(
+        hoverlabel=dict(
+        bgcolor="white", 
+        font_size=16, 
+        font_family="Rockwell"))
+
+
         if self.show:
-            fig.show()
+          fig.show()
 
         return fig.to_json()
+
 
     def future_budget(self, monthly_savings_goal=50, num_months=6, weighted=True):
 

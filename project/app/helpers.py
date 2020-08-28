@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from sqlalchemy import create_engine
+import psycopg2
 from os.path import join, dirname
 from dotenv import load_dotenv
 
@@ -30,11 +31,10 @@ def convert_to_datetime(df, columns=[]):
 
 def sql_table_to_df(table):
     # Create the connection
-    engine = create_engine('postgres://' + USERNAME +
-                           ':' + PASSWORD + '@' + DB_HOST + '/' + DB_NAME)
-
+    conn = psycopg2.connect(user = USERNAME, password = PASSWORD, host = DB_HOST, dbname = DB_NAME)
     query = f"select * from {table}"
-    df = pd.read_sql(query, engine)
+    df = pd.read_sql(query, conn)
+    conn.close()
     return df
 
 
