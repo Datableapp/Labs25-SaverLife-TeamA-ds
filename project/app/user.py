@@ -182,7 +182,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
 
 
 class User():
-    def __init__(self, id, transactions, name=None, show=False, hole=0):
+    def __init__(self, id, transactions, name=None, show=False, hole=0.8):
         """
         Constructor for the User class.
 
@@ -235,7 +235,7 @@ class User():
         user_expenses = get_last_time_period(user_expenses, time_period)
 
         # for categories that fall under 5% of transactions, group them into the "Other" category
-        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'], values=user_expenses['amount_dollars'], hole = 0.8 )])
+        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'], values=user_expenses['amount_dollars'], hole = self.hole )])
         fig.update_traces(textinfo= "percent")
 
         # add title based on current time period being viewed
