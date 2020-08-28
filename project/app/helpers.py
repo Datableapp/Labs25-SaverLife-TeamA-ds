@@ -30,7 +30,7 @@ def convert_to_datetime(df, columns=[]):
 
 
 def sql_table_to_df(table):
-    # Create the connection
+    # Create the connection using psycopg
     conn = psycopg2.connect(user = USERNAME, password = PASSWORD, host = DB_HOST, dbname = DB_NAME)
     query = f"select * from {table}"
     df = pd.read_sql(query, conn)
