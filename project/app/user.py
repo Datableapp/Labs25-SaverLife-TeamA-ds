@@ -118,8 +118,6 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
             prev.rename(columns={'amount_dollars': datestring}, inplace=True)
             ticker += 1
 
-    prev = prev.drop(columns=['amount_cents'])
-
     if weighted:
         prev = weighted_avg(prev)
     else:
@@ -128,12 +126,13 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
     return prev
 
 
-def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
+def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
     """
     Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
     
     A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
     An optional second threshold can be set to check whether or not the new row should be added or discarded.
+    By default, the function will trim the 'mean' column. A different column can be specified by setting the 'trim_name' parameter.
     The new row's name will default to "Misc." but can be set using the 'name' parameter.
     By default, this function will modify the dataframe in place. Set in_place to False to disable this.
     The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
@@ -147,9 +146,9 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # If thresholds were set to fractions, then calculate fraction of total average
     # spending and re-assign thresholds
     if 0 < threshold_1 < 1:
-        threshold_1 *= budget_df['mean'].sum()
+        threshold_1 *= budget_df[trim_name].sum()
     if 0 < threshold_2 < 1:
-        threshold_2 *= budget_df['mean'].sum()
+        threshold_2 *= budget_df[trim_name].sum()
 
     # Get budget categories
     categories = budget_df.index
@@ -161,7 +160,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # For each category, check if the mean is below threshold_1
     # If it is, update trimmed_cats and trimmed_sum then delete the row
     for cat in categories:
-        mean = budget_df['mean'][cat]
+        mean = budget_df[trim_name][cat]
 
         if mean < threshold_1:
             trimmed_sum += mean
@@ -200,7 +199,7 @@ class User():
         self.transactions = transactions
         self.data = self.transactions[self.transactions['plaid_account_id'] == self.id]
         self.expenses = self.data[(self.data['grandparent_category_name'] != 'Transfers') & (
-            self.data['amount_cents'] > 0)]
+            self.data['amount_dollars'] > 0)]
         self.show = show
         self.past_months = 6
         self.hole = hole
@@ -211,7 +210,7 @@ class User():
         """
         return self.data
 
-    def categorical_spending(self, time_period='week', category='grandparent_category_name'):
+    def categorical_spending(self, time_period='week', category='grandparent_category_name', color_template = 'Magenta', trim = True):
         """
         Returns jsonified plotly object which is a pie chart of recent transactions for the User.
 
@@ -234,10 +233,25 @@ class User():
 
         # filter down to recent transactions
         user_expenses = get_last_time_period(user_expenses, time_period)
+        
+        # combine transactions by category (required so that each color matches 1 category/label)
+        user_expense_grouped = user_expenses.groupby(['grandparent_category_name']).sum()
 
-        # for categories that fall under 5% of transactions, group them into the "Other" category
-        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'], values=user_expenses['amount_dollars'], hole = self.hole )])
-        fig.update_traces(textinfo= "percent")
+        # for categories that fall under 2% of transactions, group them into the "Other" category
+        trimmer(user_expense_grouped, threshold_1=0.02, trim_name='amount_dollars')
+
+        # get list of colors from the plotly's color templates
+        color_list = eval('px.colors.sequential.' + color_template)
+
+        # create pie/donut chart
+        fig = go.Figure(data=[go.Pie(labels=user_expense_grouped.index,
+                                     values=user_expense_grouped['amount_dollars'],
+                                     hole = self.hole,
+                                     marker_colors=color_list
+                                     )])
+
+
+        fig.update_traces(textposition='inside', textfont_size=14, textinfo="percent")
 
         # add title based on current time period being viewed
         if time_period == 'all':     
@@ -262,8 +276,6 @@ class User():
                 font=dict(
                     family="sans-serif",
                     size=12,)))
-
-        fig.update_traces(textposition='inside', textfont_size=14)
 
         # update the size of the figure
         fig.update_layout(width=1000, height=600,)
@@ -360,19 +372,19 @@ class User():
 
         return fig.to_json()
 
-    def bar_viz(self, time_period='week', category="grandparent_category_name"):
+    def bar_viz(self, time_period='week', category="grandparent_category_name", color_template = 'Greens_r'):
         """
         Uses plotly express
         Returns jsonified plotly object which is a bar chart of recent transactions for the User.
 
         Parameters:
-              time_period (str): time frame used to define "recent" transactions
-              category (str): category type to return
-                              (grandparent_category_name (default),
-                              parent_category_name,
-                              category_name)
+            time_period (str): time frame used to define "recent" transactions
+            category (str): category type to return
+                            (grandparent_category_name (default),
+                            parent_category_name,
+                            category_name)
         Returns:
-              Plotly object of a bar chart in json
+            Plotly object of a bar chart in json
         """
         # subset the data using the get_last_time_period method
         subset = get_last_time_period(self.expenses, time_period)
@@ -380,30 +392,36 @@ class User():
         subset[category] = subset[category].astype(str)
 
         # group the sum of a categorie's purchases by each day rather than by each transaction
-        subset = subset.groupby([category, 'date']).agg({'amount_dollars': 'sum'})
+        subset = subset.groupby([category, 'date']).agg(
+            {'amount_dollars': 'sum'})
         subset = subset.reset_index()
 
         # rename columns for cleaner visualization
-        subset.rename({category:'Category', 'date': 'Date', 'amount_dollars': 'Spending ($)'}, axis=1, inplace=True)
-       
-        #generate bar chart figure
- 
-        fig = px.bar(subset, x='Date', y='Spending ($)', 
-        color='Category',
-        opacity=0.9,
-        width=1200,
-        height=500,
-        template='simple_white'
+        subset.rename({category: 'Category', 'date': 'Date',
+                       'amount_dollars': 'Spending ($)'}, axis=1, inplace=True)
+
+        # get list of colors from the plotly's color templates
+        color_list = eval('px.colors.sequential.' + color_template)
+
+        # generate bar chart figure
+      
+        fig = px.bar(
+            subset,
+            x='Date',
+            y='Spending ($)',
+            color='Category',
+            color_discrete_sequence=color_list,
+            opacity=0.9,
+            width=1200,
+            height=500,
+            template='simple_white'
         )
 
-        # generate titles based on time period
         if time_period == 'all':
-          fig.update_layout(title={"text" : "Daily Spending by Category"})
-        
+            fig.update_layout(title={'text': "Daily Spending by Category "})
         else:
-          fig.update_layout(title={"text" : f"Daily Spending by Category for the Last {time_period.capitalize()}"})
-  
-        # update legend to anchor position
+            fig.update_layout(title={'text': f"Daily Spending by Category for the Last {time_period.capitalize()}"})
+
         fig.update_layout(legend=dict(
             yanchor="top",
             y=1,
@@ -411,50 +429,12 @@ class User():
             x=1
         ))
 
-        # update layout for global font size and bar position
-        fig.update_layout(font_size=15,
-                          barmode='relative')
-
-        # update global title positioning
+        fig.update_layout(font_size=15)
+        fig.update_layout(barmode='relative',)
         fig.update(layout=dict(title=dict(x=0.45)))
 
-        # reshape dataframe into dict for assigning daily total annotations
-        annotations = (subset.groupby(['Date']).sum()).to_dict()
-        annotations = dict(annotations['Spending ($)'])
-
-        # resize annotations based on the time period being viewed
-        if time_period == 'week':
-          
-          for k, v in annotations.items():
-            fig.add_annotation(
-                text=f'    <b>${round(v)}</b>',
-                font_size=16,
-                x=k,
-                y=v,
-                arrowcolor='rgba(0,0,0,0)',
-            )
-        
-        if time_period == 'month':
-          
-          for k, v in annotations.items():
-            fig.add_annotation(
-                text=f'    <b>${round(v)}</b>',
-                font_size=10,
-                x=k,
-                y=v,
-                arrowcolor='rgba(0,0,0,0)',
-            )
-
-        # style the hover labels
-        fig.update_layout(
-        hoverlabel=dict(
-        bgcolor="white", 
-        font_size=16, 
-        font_family="Rockwell"))
-
-
         if self.show:
-          fig.show()
+            fig.show()
 
         return fig.to_json()
 
