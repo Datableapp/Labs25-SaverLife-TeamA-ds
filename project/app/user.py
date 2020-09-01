@@ -496,7 +496,7 @@ class User():
         # . for that category
         avg_cat_spending_dict = dict(avg_spending_by_month_df['mean'])
 
-        # label disctionary columns
+        # label discretionary columns
         discretionary = ['Food', 'Recreation', 'Shopping', 'Other']
 
         # add column to df where its True if category is discretionary and False
@@ -508,26 +508,13 @@ class User():
         disc_dict = dict(
             avg_spending_by_month_df[avg_spending_by_month_df['disc'] == True]['mean'])
 
-        # rerverse dictionary so key is amount spent and value is category
+        # reverse dictionary so key is amount spent and value is category
         disc_dict_reversed = {}
         for k, v in disc_dict.items():
             disc_dict_reversed[v] = k
         
-        """
-        if number of months < 6:
-            flag Warning
-        
-        if num transaction < 100:
-            flag WARNING
-
-        if len of discrectionary == 0:
-            remove_category = some non-disc cat
-            flag WARNING
-
-        else:
-            remove_category = max(disc_dict_reversed.items())
-        """
-
+        # WARNING
+        # if no discretionary caterories are found, flag warning
         if len(disc_dict_reversed) == 0:
             warning.append(f"Cannot find a discretionary category. This is likely because of insufficient transaction history.")
             return json.dumps([avg_cat_spending_dict, warning])
@@ -544,16 +531,11 @@ class User():
         # subtract the monthly savings goal from that category
         avg_cat_spending_dict[max_cat[1]] -= monthly_savings_goal
 
-        """
-        if WARNING is not None:
-            add warning to the output JSON Object
-            return (avg_spending_dict, Warning).json
-        """
+        # If warning list is not empty, add it to the return body
         if len(warning) > 0:
             return json.dumps([avg_cat_spending_dict, warning])
 
         return avg_cat_spending_dict
-
 
     def current_month_spending(self):
 
