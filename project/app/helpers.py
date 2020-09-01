@@ -66,6 +66,6 @@ def clean_data():
 
     # transactions_categorized.to_csv('transactions_categorized.csv')
 
-    transactions_categorized.drop('amount_cents', axis=1)
+    transactions_categorized.drop(columns=["amount_cents"], inplace=True)
 
     return transactions_categorized

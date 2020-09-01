@@ -251,8 +251,12 @@ class User():
                                      )])
 
 
+        # force percents to be inside donut bars
         fig.update_traces(textposition='inside', textfont_size=14, textinfo="percent")
-
+        
+        # add outline to graph objects
+        fig.update_traces(marker=dict(colors=self.colors, line=dict(color='#626262', width=1.5)))       
+        
         # add title based on current time period being viewed
         if time_period == 'all':     
           fig.update_layout(title={"text" : f"Spending by Category", "x":0.5, "y":0.9}, font_size=16,)
@@ -276,6 +280,16 @@ class User():
                 font=dict(
                     family="sans-serif",
                     size=12,)))
+
+        # Add shadow image under graph
+        fig.add_layout_image(
+            dict(
+                source="https://raw.githubusercontent.com/KyleTy1er/Elwynn-Forest/master/transparent_shadow.png",
+                xref="paper", yref="paper",
+                x=.5, y=-.17,
+                sizex=0.7, sizey=0.7,
+                xanchor="center", yanchor="bottom"
+            ))
 
         # update the size of the figure
         fig.update_layout(width=1000, height=600,)
@@ -404,7 +418,6 @@ class User():
         color_list = eval('px.colors.sequential.' + color_template)
 
         # generate bar chart figure
-      
         fig = px.bar(
             subset,
             x='Date',
@@ -417,6 +430,7 @@ class User():
             template='simple_white'
         )
 
+        # generate title based on time period
         if time_period == 'all':
             fig.update_layout(title={'text': "Daily Spending by Category "})
         else:
@@ -429,9 +443,37 @@ class User():
             x=1
         ))
 
+        # formatting global font size, and title position
         fig.update_layout(font_size=15)
         fig.update_layout(barmode='relative',)
         fig.update(layout=dict(title=dict(x=0.45)))
+
+        # create annotations for $ total amounts
+        annotations = (subset.groupby(['Date']).sum()).to_dict()
+        annotations = dict(annotations['Spending ($)'])
+
+        # add total $ amounts above bars depending on time period
+        if time_period == 'week':
+
+          for k, v in annotations.items():
+            fig.add_annotation(
+                text=f'    <b>${round(v)}</b>',
+                font_size=16,
+                x=k,
+                y=v,
+                arrowcolor='rgba(0,0,0,0)',
+            )
+
+        if time_period == 'month':
+
+          for k, v in annotations.items():
+            fig.add_annotation(
+                text=f'    <b>${round(v)}</b>',
+                font_size=10,
+                x=k,
+                y=v,
+                arrowcolor='rgba(0,0,0,0)',
+            )
 
         if self.show:
             fig.show()
