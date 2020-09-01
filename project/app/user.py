@@ -2,6 +2,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+import json
 from datetime import timedelta
 
 
@@ -457,8 +458,9 @@ class User():
 
         return fig.to_json()
 
-
     def future_budget(self, monthly_savings_goal=50, num_months=6, weighted=True):
+
+        warning = []
 
         # get dataframe of average spending per category over last 6 months
         avg_spending_by_month_df = monthly_avg_spending(
@@ -467,11 +469,34 @@ class User():
         # Combine small spending categories into an "other" category
         trimmer(avg_spending_by_month_df, threshold_1=10, threshold_2=25, in_place = True)
 
+        # WARNING
+        # If user has less than 10 transactions, return None + Warning.
+        if len(self.expenses) < 10:
+            warning = "Insufficient transaction history. We require a minimum of 10 transactions before recommending a budget."
+            return json.dumps([None, warning])
+
+        # WARNING
+        # if savings goal > total budget, set savings goal to 0 and flag warning
+        total_budget = avg_spending_by_month_df['mean'].sum()
+        if monthly_savings_goal > total_budget:
+            warning.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            return json.dumps([None, warning])
+
+        # WARNING
+        # IF number of transactions < 100, add a warning about poor predictions
+        if len(self.transactions) < 100:
+            warning.append(f"Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations.")
+
+        # WARNING
+        # IF transaction history < 6 months of data, add a warning about poor predictions
+        if (max(self.expenses['date']) - min(self.expenses['date'])).days < 180:
+            warning.append("Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations.")
+
         # turn into dictionary where key is category and value is average spending
         # . for that category
         avg_cat_spending_dict = dict(avg_spending_by_month_df['mean'])
 
-        # label disctionary columns
+        # label discretionary columns
         discretionary = ['Food', 'Recreation', 'Shopping', 'Other']
 
         # add column to df where its True if category is discretionary and False
@@ -483,22 +508,34 @@ class User():
         disc_dict = dict(
             avg_spending_by_month_df[avg_spending_by_month_df['disc'] == True]['mean'])
 
-        # rerverse dictionary so key is amount spent and value is category
+        # reverse dictionary so key is amount spent and value is category
         disc_dict_reversed = {}
         for k, v in disc_dict.items():
             disc_dict_reversed[v] = k
+        
+        # WARNING
+        # if no discretionary caterories are found, flag warning
+        if len(disc_dict_reversed) == 0:
+            warning.append(f"Cannot find a discretionary category. This is likely because of insufficient transaction history.")
+            return json.dumps([avg_cat_spending_dict, warning])
+
 
         # find the key:value pair that shows which discretionary category the user
         # . spent the most money in
         max_cat = max(disc_dict_reversed.items())
 
+        if max_cat[0] < monthly_savings_goal:
+            warning = f"Your monthly savings goal of {monthly_savings_goal} is too large compared to your discretionary budget. Please input a smaller savings goal"
+            return json.dumps([None, warning])
+
         # subtract the monthly savings goal from that category
         avg_cat_spending_dict[max_cat[1]] -= monthly_savings_goal
 
-        self.past_months = num_months
+        # If warning list is not empty, add it to the return body
+        if len(warning) > 0:
+            return json.dumps([avg_cat_spending_dict, warning])
 
         return avg_cat_spending_dict
-
 
     def current_month_spending(self):
 
