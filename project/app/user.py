@@ -237,8 +237,7 @@ class User():
         # combine transactions by category (required so that each color matches 1 category/label)
         user_expense_grouped = user_expenses.groupby(['grandparent_category_name']).sum()
 
-        # for categories that fall under 5% of transactions, group them into the "Other" category
-        
+        # for categories that fall under 2% of transactions, group them into the "Other" category
         trimmer(user_expense_grouped, threshold_1=0.02, trim_name='amount_dollars')
 
         # get list of colors from the plotly's color templates
