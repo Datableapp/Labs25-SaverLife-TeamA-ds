@@ -126,12 +126,13 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
     return prev
 
 
-def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False, budget = 'mean'):
+def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
     """
     Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
     
     A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
     An optional second threshold can be set to check whether or not the new row should be added or discarded.
+    By default, the function will trim the 'mean' column. A different column can be specified by setting the 'trim_name' parameter.
     The new row's name will default to "Misc." but can be set using the 'name' parameter.
     By default, this function will modify the dataframe in place. Set in_place to False to disable this.
     The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
@@ -145,9 +146,9 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # If thresholds were set to fractions, then calculate fraction of total average
     # spending and re-assign thresholds
     if 0 < threshold_1 < 1:
-        threshold_1 *= budget_df[budget].sum()
+        threshold_1 *= budget_df[trim_name].sum()
     if 0 < threshold_2 < 1:
-        threshold_2 *= budget_df[budget].sum()
+        threshold_2 *= budget_df[trim_name].sum()
 
     # Get budget categories
     categories = budget_df.index
@@ -159,7 +160,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # For each category, check if the mean is below threshold_1
     # If it is, update trimmed_cats and trimmed_sum then delete the row
     for cat in categories:
-        mean = budget_df[budget][cat]
+        mean = budget_df[trim_name][cat]
 
         if mean < threshold_1:
             trimmed_sum += mean
