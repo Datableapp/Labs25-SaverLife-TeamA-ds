@@ -128,7 +128,7 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
     return prev
 
 
-def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
+def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False, budget = 'mean'):
     """
     Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
     
@@ -147,9 +147,9 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # If thresholds were set to fractions, then calculate fraction of total average
     # spending and re-assign thresholds
     if 0 < threshold_1 < 1:
-        threshold_1 *= budget_df['mean'].sum()
+        threshold_1 *= budget_df[budget].sum()
     if 0 < threshold_2 < 1:
-        threshold_2 *= budget_df['mean'].sum()
+        threshold_2 *= budget_df[budget].sum()
 
     # Get budget categories
     categories = budget_df.index
@@ -161,7 +161,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place
     # For each category, check if the mean is below threshold_1
     # If it is, update trimmed_cats and trimmed_sum then delete the row
     for cat in categories:
-        mean = budget_df['mean'][cat]
+        mean = budget_df[budget][cat]
 
         if mean < threshold_1:
             trimmed_sum += mean
