@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from app.helpers import *
 from app.user import User
 from pydantic import BaseModel, Field, validator
+from typing import Optional
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -17,8 +18,8 @@ class Item(BaseModel):
     user_ID: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
     graph_type: str = Field(..., example='pie')
     time_period: str = Field(..., example='week')
-    color_template: str = Field('Magenta', example='Greens_r')
-    hole: float = Field(0.8, example=0.8)
+    color_template: Optional[str] = Field('Greens_r', example='Greens_r')
+    hole: Optional[float] = Field(0.8, example = 0.8)
 
     def to_df(self):
         """Convert pydantic object to pandas dataframe with 1 row."""
@@ -103,8 +104,8 @@ async def spending(item: Item):
     - `User_ID`: str
     - `graph_type`: str (pie or bar)
     - `time_period`: str (week, month, year, all)
-    - 'color_template': str = Field('Magenta', example='Greens_r')
-    - `hole`: float (0 - 1)
+    - `OPTIONAL: color_template`: [Color Template Options (Sequential only)](https://plotly.com/python/builtin-colorscales/#builtin-sequential-color-scales)
+    - `OPTIONAL: hole`: float (0 - 1)
     ### Response
     - `plotly object`:
     visualizing the user's spending habits in the form of the selected graph
