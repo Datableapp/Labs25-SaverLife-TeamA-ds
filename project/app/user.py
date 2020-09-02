@@ -255,7 +255,7 @@ class User():
         fig.update_traces(textposition='inside', textfont_size=14, textinfo="percent")
         
         # add outline to graph objects
-        fig.update_traces(marker=dict(colors=self.colors, line=dict(color='#626262', width=1.5)))       
+        fig.update_traces(marker=dict(line=dict(color='#626262', width=1.5)))       
         
         # add title based on current time period being viewed
         if time_period == 'all':     
