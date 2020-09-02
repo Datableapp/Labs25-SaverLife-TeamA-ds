@@ -40,8 +40,31 @@ class Item(BaseModel):
     @validator('color_template')
     def color_template_must_be_valid(cls, value):
         """Validate that the color_template value is valid"""
-        color_template_set = set('Aggrnyl', 'Aggrnyl_r', 'Agsunset', 'Agsunset_r', 'Blackbody', 'Blackbody_r', 'Bluered', 'Bluered_r', 'Blues', 'Blues_r', 'Blugrn', 'Blugrn_r', 'Bluyl', 'Bluyl_r', 'Brwnyl', 'Brwnyl_r', 'BuGn', 'BuGn_r', 'BuPu', 'BuPu_r', 'Burg', 'Burg_r', 'Burgyl', 'Burgyl_r', 'Cividis', 'Cividis_r', 'Darkmint', 'Darkmint_r', 'Electric', 'Electric_r', 'Emrld', 'Emrld_r', 'GnBu', 'GnBu_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'Hot', 'Hot_r', 'Inferno', 'Inferno_r', 'Jet', 'Jet_r', 'Magenta', 'Magenta_r', 'Magma', 'Magma_r', 'Mint', 'Mint_r', 'OrRd', 'OrRd_r', 'Oranges', 'Oranges_r', 'Oryel', 'Oryel_r', 'Peach', 'Peach_r', 'Pinkyl', 'Pinkyl_r', 'Plasma', 'Plasma_r', 'Plotly3', 'Plotly3_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuRd', 'PuRd_r', 'Purp', 'Purp_r', 'Purples', 'Purples_r', 'Purpor', 'Purpor_r', 'Rainbow', 'Rainbow_r', 'RdBu', 'RdBu_r', 'RdPu', 'RdPu_r', 'Redor', 'Redor_r', 'Reds', 'Reds_r', 'Sunset', 'Sunset_r', 'Sunsetdark', 'Sunsetdark_r', 'Teal', 'Teal_r', 'Tealgrn', 'Tealgrn_r', 'Viridis', 'Viridis_r', 'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', 'YlOrRd', 'YlOrRd_r', 'algae', 'algae_r', 'amp', 'amp_r', 'deep', 'deep_r', 'dense', 'dense_r', 'gray', 'gray_r', 'haline', 'haline_r', 'ice', 'ice_r', 'matter', 'matter_r', 'solar', 'solar_r', 'speed', 'speed_r', 'swatches', 'tempo', 'tempo_r', 'thermal', 'thermal_r', 'turbid', 'turbid_r')
-        assert value in color_template_set, f'the color template, {value}, is invalid'
+        color_template_set = set(
+            ['Aggrnyl','Aggrnyl_r','Agsunset','Agsunset_r','Blackbody',
+            'Blackbody_r','Bluered','Bluered_r','Blues','Blues_r','Blugrn',
+            'Blugrn_r','Bluyl','Bluyl_r','Brwnyl','Brwnyl_r','BuGn','BuGn_r',
+            'BuPu','BuPu_r','Burg','Burg_r','Burgyl','Burgyl_r','Cividis',
+            'Cividis_r','Darkmint','Darkmint_r','Electric','Electric_r',
+            'Emrld','Emrld_r','GnBu','GnBu_r','Greens','Greens_r','Greys',
+            'Greys_r','Hot','Hot_r','Inferno','Inferno_r','Jet','Jet_r',
+            'Magenta','Magenta_r','Magma','Magma_r','Mint','Mint_r','OrRd',
+            'OrRd_r','Oranges','Oranges_r','Oryel','Oryel_r','Peach',
+            'Peach_r','Pinkyl','Pinkyl_r','Plasma','Plasma_r','Plotly3',
+            'Plotly3_r','PuBu','PuBuGn','PuBuGn_r','PuBu_r','PuRd','PuRd_r',
+            'Purp','Purp_r','Purples','Purples_r','Purpor','Purpor_r',
+            'Rainbow','Rainbow_r','RdBu','RdBu_r','RdPu','RdPu_r','Redor',
+            'Redor_r','Reds','Reds_r','Sunset','Sunset_r','Sunsetdark',
+            'Sunsetdark_r','Teal','Teal_r','Tealgrn','Tealgrn_r','Viridis',
+            'Viridis_r','YlGn','YlGnBu','YlGnBu_r','YlGn_r','YlOrBr',
+            'YlOrBr_r','YlOrRd','YlOrRd_r','algae','algae_r','amp','amp_r',
+            'deep','deep_r','dense','dense_r','gray','gray_r','haline',
+            'haline_r','ice','ice_r','matter','matter_r','solar','solar_r',
+            'speed','speed_r','swatches','tempo','tempo_r','thermal',
+            'thermal_r','turbid','turbid_r'])
+        
+        error_str = f'the color template, {value}, is invalid. Please see a list of valid templates at https://plotly.com/python/builtin-colorscales/#builtin-sequential-color-scales'
+        assert value in color_template_set, error_str
         return value
 
 
