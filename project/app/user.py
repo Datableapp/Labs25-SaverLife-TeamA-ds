@@ -559,13 +559,18 @@ class User():
 
         return avg_cat_spending_dict
 
-    def current_month_spending(self):
+    def current_month_spending(self, date_cutoff = None):
 
         cur_year = self.expenses['date'].max().year
         cur_month = self.expenses['date'].max().month
         user_exp = self.expenses.copy()
         cur_month_expenses = user_exp[(user_exp['date'].dt.month == cur_month) &
                                       (user_exp['date'].dt.year == cur_year)]
+
+        # If a cutoff has been specified, consider only the days in the month up to and including the cutoff
+        if date_cutoff:
+            cur_month_expenses = cur_month_expenses[ cur_month_expenses['date'].dt.day <= date_cutoff]
+
         grouped_expenses = cur_month_expenses.groupby(
             ['grandparent_category_name']).sum()
         grouped_expenses = grouped_expenses.round({'amount_dollars': 2})
