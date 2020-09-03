@@ -349,7 +349,6 @@ class User():
           fig.update_layout(title={"text" : f"Money Flow", "x":0.5, "y":0.9})
                             
         else:
-
           fig.update_layout(title={"text" : f"Daily Net Income for the Last {time_period.capitalize()}", "x":0.5, "y":0.9})
 
         # label and style the x and y axis                              
@@ -364,27 +363,6 @@ class User():
 
         return fig.to_json()
 
-        # update title based on time period being viewed
-        if time_period == 'all':
-            fig.update_layout(
-                title={"text": f"Money Flow", "x": 0.5, "y": 0.9},
-                xaxis_title='Date',
-                yaxis_title='Net Income ($)',
-                font_size=16,
-                template='presentation')
-
-        else:
-            fig.update_layout(
-                title={"text": f"Money Flow for the Last {time_period.capitalize()}", "x": 0.5, "y": 0.9},
-                xaxis_title='Date',
-                yaxis_title='Net Income ($)',
-                font_size=16,
-                template='presentation')
-
-        if self.show:
-            fig.show()
-
-        return fig.to_json()
 
     def bar_viz(self, time_period='week', category="grandparent_category_name", color_template = 'Greens_r'):
         """
