@@ -559,26 +559,40 @@ class User():
 
         return avg_cat_spending_dict
 
-    def current_month_spending(self):
+    def current_month_spending(self, date_cutoff = None):
+        """
+        Return a user's spending history for their most recent month containing
+        spending transactions.
+        An int can be passed into the optional date_cutoff parameter to get 
+        history up to but not including the date specified.
+        """
 
+        # get the year and month of the most recent transactions
         cur_year = self.expenses['date'].max().year
         cur_month = self.expenses['date'].max().month
+
+        # filter user expenses down to the most recent month
         user_exp = self.expenses.copy()
         cur_month_expenses = user_exp[(user_exp['date'].dt.month == cur_month) &
                                       (user_exp['date'].dt.year == cur_year)]
+
+        # If a cutoff has been specified, consider only the days in the month up to and including the cutoff
+        if date_cutoff:
+            cur_month_expenses = cur_month_expenses[ cur_month_expenses['date'].dt.day <= date_cutoff]
+
+        # get total spending by category
         grouped_expenses = cur_month_expenses.groupby(
             ['grandparent_category_name']).sum()
         grouped_expenses = grouped_expenses.round({'amount_dollars': 2})
-
         grouped_dict = dict(grouped_expenses['amount_dollars'])
 
-        # get dataframe of average spending per category over last 6 months
+        # use avg_spending_by_month_df() and trimmer() to get a dataframe of our recommended monthly budget
         avg_spending_by_month_df = monthly_avg_spending(
             self.expenses, num_months=self.past_months)
-
-        # Combine small spending categories into an "other" category
         trimmer(avg_spending_by_month_df, threshold_1=10, threshold_2=25, in_place = True)
 
+        # loop through categories in the recommended budget and add in categories that are present in the 
+        # recommended budget but the user has not spent month on them yet this month
         for cat in avg_spending_by_month_df.index:
             if cat not in grouped_dict:
                 grouped_dict[cat] = 0

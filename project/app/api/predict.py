@@ -92,7 +92,7 @@ async def future_budget(budget: Budget):
     return user.future_budget(monthly_savings_goal=monthly_savings_goal)
 
 
-@router.get('/current_month_spending')
+@router.get('/current_month_spending/{user_id}')
 async def current_month_spending(user_id: str):
     """
     Visualize state unemployment rate from [Federal Reserve Economic Data](https://fred.stlouisfed.org/) 📈
