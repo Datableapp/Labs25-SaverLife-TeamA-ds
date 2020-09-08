@@ -574,5 +574,12 @@ class User():
         for cat in avg_spending_by_month_df.index:
             if cat not in grouped_dict:
                 grouped_dict[cat] = 0
+                
+        # Edgecase hotfix
+        # Loop through categories in our dictionary of current expenses
+        # If a category was not planned for in the budget, delete it from the current spending dictionary
+        for cat in grouped_dict.keys():
+            if cat not in avg_spending_by_month_df.index:
+                del grouped_dict[cat]
 
         return grouped_dict
