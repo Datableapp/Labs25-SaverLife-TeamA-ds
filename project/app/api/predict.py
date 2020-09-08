@@ -8,6 +8,7 @@ import numpy as np
 from app.helpers import *
 from app.user import User
 from pydantic import BaseModel, Field, validator
+from typing import Optional
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -93,18 +94,21 @@ async def future_budget(budget: Budget):
 
 
 @router.get('/current_month_spending/{user_id}')
-async def current_month_spending(user_id: str):
+async def current_month_spending(user_id: str, day_of_month: Optional[int] = None):
     """
-    Visualize state unemployment rate from [Federal Reserve Economic Data](https://fred.stlouisfed.org/) 📈
+    Get user spending for the current month.
 
     ### Path Parameter
-    `statecode`: The [USPS 2 letter abbreviation](https://en.wikipedia.org/wiki/List_of_U.S._state_and_territory_abbreviations#Table) 
-    (case insensitive) for any of the 50 states or the District of Columbia.
+    - `user_id`: str
+    - `OPTIONAL: day_of_month`: int (0 - 31) - day of the month used to specify
+    that you only want spending up to and including this specify day in the
+    month
 
     ### Response
-    JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/) 
+    - `category`: grandparent category name
+    - `amount_spent`: integer showing amount the user has spent for each
+    category in the latest month we have data for 
     """
-
     users = set(clean_data()['plaid_account_id'])
     transactions = clean_data()
     unique_users = set(transactions['plaid_account_id'])
@@ -114,5 +118,8 @@ async def current_month_spending(user_id: str):
             status_code=404, detail=f"User {user_id} doesn't exist")
 
     user = User(user_id, transactions)
-
-    return user.current_month_spending()
+    
+    if day_of_month:
+        return user.current_month_spending(date_cutoff=day_of_month)
+    else:
+        return user.current_month_spending()
