@@ -14,6 +14,11 @@ PASSWORD = os.environ.get("PASSWORD")
 DB_HOST = os.environ.get("DB_HOST")
 DB_NAME = os.environ.get("DB_NAME")
 
+SAVER_USERNAME = os.environ.get("SAVER_USERNAME")
+SAVER_PASSWORD = os.environ.get("SAVER_PASSWORD")
+SAVER_DB_HOST = os.environ.get("SAVER_DB_HOST")
+SAVER_DB_NAME = os.environ.get("SAVER_DB_NAME")
+
 
 def convert_to_datetime(df, columns=[]):
     """
@@ -23,49 +28,51 @@ def convert_to_datetime(df, columns=[]):
     Parameters:
             df (dataframe): a dataframe with time columns not in datetime
                             format
-            columns (list): list of columns to be converted     
+            columns (list): list of columns to be converted
     """
     for col in columns:
         df[col] = pd.to_datetime(df[col], infer_datetime_format=True)
 
 
-def sql_table_to_df(table):
-    # Create the connection using psycopg
-    conn = psycopg2.connect(user = USERNAME, password = PASSWORD, host = DB_HOST, dbname = DB_NAME)
-    query = f"select * from {table}"
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
+def load_user_data(bank_id):
 
-
-def clean_data():
+    conn1 = psycopg2.connect(user=SAVER_USERNAME, password=SAVER_PASSWORD,
+                             host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
+    query1 = f"""
+    SELECT
+        id,
+        date,
+        amount_cents,
+        merchant_address,
+        merchant_city,
+        merchant_state,
+        merchant_zip,
+        category_id,
+        purpose
+    FROM 
+        public.plaid_main_transactions
+    WHERE
+        bank_account_id = {bank_id}
     """
-    Usage:
-        transactions = clean_data()
-    Returns:
-        dataframe that is cleaned.
-    """
+    df1 = pd.read_sql(query1, conn1)
+    conn1.close()
 
-    dfPFA = sql_table_to_df('pfa')
-    dfBA = sql_table_to_df('ba')
-    dfPMT = sql_table_to_df('pmt')
-    category_lookups = sql_table_to_df('category_lookups')
-
-    dfPFA = dfPFA.dropna(thresh=600, axis=1)
-    dfBA_delete = ['official_name', 'last_balance_update_at',
-                   'atlas_id', 'atlas_parent_id', 'rewards_basis']
-    dfBA = dfBA.drop(columns=dfBA_delete)
-    dfPMT = dfPMT.dropna(thresh=600, axis=1)
-
-    transactions_categorized = pd.merge(dfPMT, category_lookups,  how='left', left_on=[
-                                        'category_id'], right_on=['plaid_category_id'])
-
-    transactions_categorized = transactions_categorized[[
-        'plaid_account_id', 'category_name', 'parent_category_name', 'grandparent_category_name', 'amount_cents', 'date', 'created_at']]
+    conn2 = psycopg2.connect(user = USERNAME, password = PASSWORD,
+                             host = DB_HOST, dbname = DB_NAME)
+    query2 = "SELECT * FROM category_lookups"
+    df2 = pd.read_sql(query2, conn2)
+    conn2.close()
+    
+    transactions_categorized = pd.merge(df1, df2,
+                                        how='left',
+                                        left_on=['category_id'],
+                                        right_on=['plaid_category_id'])
+    transactions_categorized = transactions_categorized[['category_name',
+                                                         'parent_category_name',
+                                                         'grandparent_category_name',
+                                                         'amount_cents',
+                                                         'date']]
     transactions_categorized['amount_dollars'] = transactions_categorized['amount_cents'] / 100
-
-    # transactions_categorized.to_csv('transactions_categorized.csv')
-
     transactions_categorized.drop(columns=["amount_cents"], inplace=True)
 
     return transactions_categorized
