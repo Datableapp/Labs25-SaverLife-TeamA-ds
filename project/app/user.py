@@ -182,7 +182,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
 
 
 class User():
-    def __init__(self, id, transactions, name=None, show=False, hole=0.8):
+    def __init__(self, data, name=None, show=False, hole=0.8):
         """
         Constructor for the User class.
 
@@ -192,12 +192,10 @@ class User():
               name (str): user's name. Default is to have no name.
               show (bool): set to True to display graphs after they are generated. Defaults to False
         """
-        self.id = id
         self.name = name
         if not self.name:
-            self.name = self.id
-        self.transactions = transactions
-        self.data = self.transactions[self.transactions['plaid_account_id'] == self.id]
+            self.name = 'Test User'
+        self.data = data 
         self.expenses = self.data[(self.data['grandparent_category_name'] != 'Transfers') & (
             self.data['amount_dollars'] > 0)]
         self.show = show
@@ -363,7 +361,6 @@ class User():
 
         return fig.to_json()
 
-
     def bar_viz(self, time_period='week', category="grandparent_category_name", color_template = 'Greens_r'):
         """
         Uses plotly express
@@ -484,7 +481,7 @@ class User():
 
         # WARNING
         # IF number of transactions < 100, add a warning about poor predictions
-        if len(self.transactions) < 100:
+        if len(self.expenses) < 100:
             warning.append(f"Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations.")
 
         # WARNING
