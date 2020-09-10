@@ -15,7 +15,7 @@ router = APIRouter()
 
 class Item(BaseModel):
     """Use this data model to parse the request body JSON."""
-    user_ID: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
+    bank_account_id: int = Field(..., example=131952)
     graph_type: str = Field(..., example='pie')
     time_period: str = Field(..., example='week')
     color_template: Optional[str] = Field('Greens_r', example='Greens_r')
@@ -29,13 +29,22 @@ class Item(BaseModel):
         """Convert pydantic object to python dictionary."""
         return dict(self)
 
-    @validator('user_ID')
+    @validator('bank_account_id')
     def user_ID_must_exist(cls, value):
         """Validate that user_id is a valid ID."""
-        # load sample data and create a set of the user ID's
-        users = set(clean_data()['plaid_account_id'])
-        assert value in users, f'the user_ID {value} is invalid'
+        conn = psycopg2.connect(user=SAVER_USERNAME, password=SAVER_PASSWORD,
+                             host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
+        query = f"""
+        SELECT id
+        FROM PUBLIC.plaid_main_transactions 
+        WHERE bank_account_id = {value}
+        LIMIT 1
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        assert len(df) > 0, f'the bank_account_id {value} is invalid'
         return value
+
 
     @validator('color_template')
     def color_template_must_be_valid(cls, value):
@@ -70,7 +79,7 @@ class Item(BaseModel):
 
 class MoneyFlow(BaseModel):
     """Use this data model to parse the request body JSON."""
-    user_ID: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
+    bank_account_id: int = Field(..., example=131952)
     time_period: str = Field(..., example='week')
 
     def to_df(self):
@@ -81,12 +90,20 @@ class MoneyFlow(BaseModel):
         """Convert pydantic object to python dictionary."""
         return dict(self)
 
-    @validator('user_ID')
+    @validator('bank_account_id')
     def user_ID_must_exist(cls, value):
         """Validate that user_id is a valid ID."""
-        # load sample data and create a set of the user ID's
-        users = set(clean_data()['plaid_account_id'])
-        assert value in users, f'the user_ID {value} is invalid'
+        conn = psycopg2.connect(user=SAVER_USERNAME, password=SAVER_PASSWORD,
+                             host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
+        query = f"""
+        SELECT id
+        FROM PUBLIC.plaid_main_transactions 
+        WHERE bank_account_id = {value}
+        LIMIT 1
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        assert len(df) > 0, f'the bank_account_id {value} is invalid'
         return value
 
 
@@ -95,7 +112,7 @@ async def moneyflow(moneyflow: MoneyFlow):
     """
     Visualize a user's money flow 📈
     ### Request Body
-    - `User_ID`: str
+    - `bank_account_id`: int
     - `time_period`: str (week, month, year, all)
     
     ### Response
@@ -104,18 +121,12 @@ async def moneyflow(moneyflow: MoneyFlow):
     """
     # Get the JSON object from the POST request body and cast it to a python dictionary
     input_dict = moneyflow.to_dict()
-    user_id = input_dict['user_ID']
+    bank_account_id = input_dict['bank_account_id']
     time_period = input_dict['time_period']
     
-    transactions = clean_data()
-    unique_users = set(transactions['plaid_account_id'].unique())
+    transactions = load_user_data(bank_account_id)
 
-    # Validate the user
-    if user_id not in unique_users:
-        raise HTTPException(
-            status_code=404, detail=f'User {user_id} not found')
-
-    user = User(user_id, transactions)
+    user = User(transactions)
     return user.money_flow(time_period=time_period)
 
 
@@ -124,7 +135,7 @@ async def spending(item: Item):
     """
     Make visualizations based on past spending 📊
     ### Request Body
-    - `User_ID`: str
+    - `bank_account_id`: int
     - `graph_type`: str (pie or bar)
     - `time_period`: str (week, month, year, all)
     - `OPTIONAL: color_template`: [Color Template Options (Sequential only)](https://plotly.com/python/builtin-colorscales/#builtin-sequential-color-scales)
@@ -136,21 +147,15 @@ async def spending(item: Item):
     """
     # Get the JSON object from the POST request body and cast it to a python dictionary
     input_dict = item.to_dict()
-    user_id = input_dict['user_ID']
+    bank_account_id = input_dict['bank_account_id']
     graph_type = input_dict['graph_type']
     time_period = input_dict['time_period']
     color_template = input_dict['color_template']
     hole = input_dict['hole']
     # Everything below is copy and pasted code from the spending() function in viz.py
-    transactions = clean_data()
-    unique_users = set(transactions['plaid_account_id'].unique())
+    transactions = load_user_data(bank_account_id)
 
-    # Validate the user
-    if user_id not in unique_users:
-        raise HTTPException(
-            status_code=404, detail=f'User {user_id} not found')
-
-    user = User(user_id, transactions, hole=hole)
+    user = User(transactions, hole=hole)
 
     if graph_type == 'pie':
         return user.categorical_spending(time_period=time_period, color_template=color_template)
