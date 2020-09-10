@@ -96,7 +96,7 @@ async def future_budget(budget: Budget):
 
 
 @router.get('/current_month_spending/{bank_account_id}')
-async def current_month_spending(bank_account_id: str, day_of_month: Optional[int] = None):
+async def current_month_spending(bank_account_id: int, day_of_month: Optional[int] = None):
     """
     Get user spending for the current month.
 
