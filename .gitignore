@@ -1,5 +1,5 @@
 .DS_Store
-.idea
+.idea/*
 .env
 .ipynb_checkpoints
 .pytest_cache
