@@ -289,8 +289,11 @@ class User():
                 xanchor="center", yanchor="bottom"
             ))
 
-        # update the size of the figure
-        fig.update_layout(width=1000, height=600,)
+        # update the size and background of the figure
+        fig.update_layout(width=1000,
+                          height=600,
+                          plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)')
         
         if self.show:
             fig.show()
@@ -354,7 +357,9 @@ class User():
           xaxis_title='Date',
           yaxis_title='Net Income ($)',
           font_size=16,
-          template='presentation')
+          template='presentation',
+          plot_bgcolor = 'rgba(0, 0, 0, 0)',
+          paper_bgcolor = 'rgba(0, 0, 0, 0)')
   
         if self.show:
           fig.show()
@@ -419,7 +424,10 @@ class User():
         ))
 
         # formatting global font size, and title position
-        fig.update_layout(font_size=15)
+        fig.update_layout(font_size=15,
+                          plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)')
+
         fig.update_layout(barmode='relative',)
         fig.update(layout=dict(title=dict(x=0.45)))
 
