@@ -1,7 +1,7 @@
 import logging
 import random
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import pandas as pd
 import numpy as np
 # import operator
@@ -36,7 +36,7 @@ class Item(BaseModel):
 class Budget(BaseModel):
     """Use this data model to parse the request body JSON."""
 
-    user_id: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
+    bank_account_id: int = Field(..., example=131952)
     monthly_savings_goal: int = Field(..., example=50)
     placeholder: str = Field(..., example='banjo')
 
@@ -48,12 +48,20 @@ class Budget(BaseModel):
         """Convert pydantic object to python dictionary."""
         return dict(self)
 
-    @validator('user_id')
+    @validator('bank_account_id')
     def user_ID_must_exist(cls, value):
         """Validate that user_id is a valid ID."""
-        # load sample data and create a set of the user ID's
-        users = set(clean_data()['plaid_account_id'])
-        assert value in users, f'the user_ID {value} is invalid'
+        conn = psycopg2.connect(user=SAVER_USERNAME, password=SAVER_PASSWORD,
+                             host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
+        query = f"""
+        SELECT id
+        FROM PUBLIC.plaid_main_transactions 
+        WHERE bank_account_id = {value}
+        LIMIT 1
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        assert len(df) > 0, f'the bank_account_id {value} is invalid'
         return value
 
 
@@ -63,7 +71,7 @@ async def future_budget(budget: Budget):
     Suggest a budget for a specified user.
 
     ### Request Body
-    - `user_id`: str
+    - `bank_account_id`: int
     - `monthly_savings_goal`: integer
     - `placeholder`: string
 
@@ -76,30 +84,24 @@ async def future_budget(budget: Budget):
 
     # Get the JSON object from the POST request body and cast it to a python dictionary
     input_dict = budget.to_dict()
-    user_id = input_dict['user_id']
+    bank_account_id = input_dict['bank_account_id']
     monthly_savings_goal = input_dict['monthly_savings_goal']
 
-    transactions = clean_data()
-    unique_users = set(transactions['plaid_account_id'].unique())
-
-    # Validate the user
-    if user_id not in unique_users:
-        raise HTTPException(
-            status_code=404, detail=f'User {user_id} not found')
+    transactions = load_user_data(bank_account_id)
 
     # instantiate the user
-    user = User(user_id, transactions)
+    user = User(transactions)
 
     return user.future_budget(monthly_savings_goal=monthly_savings_goal)
 
 
-@router.get('/current_month_spending/{user_id}')
-async def current_month_spending(user_id: str, day_of_month: Optional[int] = None):
+@router.get('/current_month_spending/{bank_account_id}')
+async def current_month_spending(bank_account_id: int, day_of_month: Optional[int] = None):
     """
     Get user spending for the current month.
 
     ### Path Parameter
-    - `user_id`: str
+    - `bank_account_id`: int
     - `OPTIONAL: day_of_month`: int (0 - 31) - day of the month used to specify
     that you only want spending up to and including this specify day in the
     month
@@ -109,15 +111,13 @@ async def current_month_spending(user_id: str, day_of_month: Optional[int] = Non
     - `amount_spent`: integer showing amount the user has spent for each
     category in the latest month we have data for 
     """
-    users = set(clean_data()['plaid_account_id'])
-    transactions = clean_data()
-    unique_users = set(transactions['plaid_account_id'])
+    transactions = load_user_data(bank_account_id)
 
-    if user_id not in unique_users:
+    if len(transactions) == 0:
         raise HTTPException(
-            status_code=404, detail=f"User {user_id} doesn't exist")
+            status_code=404, detail=f"Bank Account ID, {bank_account_id}, doesn't exist")
 
-    user = User(user_id, transactions)
+    user = User(transactions)
     
     if day_of_month:
         return user.current_month_spending(date_cutoff=day_of_month)
