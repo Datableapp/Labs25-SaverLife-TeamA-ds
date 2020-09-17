@@ -1,14 +1,13 @@
 import logging
 import random
-
-from fastapi import APIRouter, HTTPException
 import pandas as pd
 import numpy as np
-# import operator
+
+from fastapi import APIRouter, HTTPException, Request, Header, Query
 from app.helpers import *
 from app.user import User
 from pydantic import BaseModel, Field, validator
-from typing import Optional
+from typing import Optional, List
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -91,35 +90,30 @@ async def future_budget(budget: Budget):
 
     # instantiate the user
     user = User(transactions)
+    # predict budget using time series model
+    pred_bud = user.predict_budget()
+    # modify budget based on savings goal
+    modified_budget = user.budget_modifier(pred_bud, monthly_savings_goal=monthly_savings_goal)
 
-    return user.future_budget(monthly_savings_goal=monthly_savings_goal)
+    return modified_budget
 
 
 @router.get('/current_month_spending/{bank_account_id}')
-async def current_month_spending(bank_account_id: int, day_of_month: Optional[int] = None):
-    """
-    Get user spending for the current month.
+async def current_month_spending(bank_account_id: int, day_of_month: Optional[int] = None, categories: List[str] = Query(None)):
 
-    ### Path Parameter
-    - `bank_account_id`: int
-    - `OPTIONAL: day_of_month`: int (0 - 31) - day of the month used to specify
-    that you only want spending up to and including this specify day in the
-    month
-
-    ### Response
-    - `category`: grandparent category name
-    - `amount_spent`: integer showing amount the user has spent for each
-    category in the latest month we have data for 
-    """
     transactions = load_user_data(bank_account_id)
-
+    
     if len(transactions) == 0:
         raise HTTPException(
             status_code=404, detail=f"Bank Account ID, {bank_account_id}, doesn't exist")
-
-    user = User(transactions)
+        
+    if not categories:
+        raise HTTPException(
+            status_code=404, detail=f"Please provide the categories that were in the user's budget")
     
+    user = User(transactions)
+
     if day_of_month:
-        return user.current_month_spending(date_cutoff=day_of_month)
+        return user.current_month_spending(fixed_categories=categories, date_cutoff=day_of_month)
     else:
-        return user.current_month_spending()
+        return user.current_month_spending(fixed_categories=categories)
