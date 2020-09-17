@@ -369,7 +369,7 @@ class User():
         self.expenses = self.data[(self.data['grandparent_category_name'] != 'Transfers') & (
             self.data['amount_dollars'] > 0)]
         self.show = show
-        self.past_months = 6
+        self.past_months = 12
         self.hole = hole
 
     def get_user_data(self):
