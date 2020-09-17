@@ -3,8 +3,10 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import json
-from datetime import timedelta
+import datetime as dt
 
+from datetime import timedelta
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 
 def get_last_time_period(transaction_df, time_period='week'):
     """
@@ -42,7 +44,6 @@ def get_last_time_period(transaction_df, time_period='week'):
 
     return subset
 
-
 def weighted_avg(data):
     """
     Given a dataframe
@@ -68,54 +69,81 @@ def weighted_avg(data):
     data = data.round()
     return data
 
-
 def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_category_name', weighted=True):
+    # ticker to track how many times we have iterated
     ticker = 0
+    # latest month we have data on for user
     cur_month = user_expenses_df['date'].max().month
+    # latest year we have data on for user
     cur_year = user_expenses_df['date'].max().year
 
     while ticker < num_months:
         # on first iteration
         if ticker == 0:
-
+            
+            # if cur_month is January
             if cur_month == 1:
+                # set prev month to December
                 prev_month = 12
+                # subset user expenses to include data from Decemeber of the prvious year
                 user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
                     prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
+                # group df by category and sum the amount spent
                 prev = user_exp_prev.groupby([category]).sum()
+                # reassign cur month (going back in time)
                 cur_month = prev_month
+                # reassign cur year (going back in time)
                 cur_year -= 1
 
             else:
+                # prev month is the month before the cur month
                 prev_month = cur_month - 1
+                # subset user expenses to include data from pervious month of current year
                 user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
                     prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
+                # group df by category and sum the amount spent
                 prev = user_exp_prev.groupby([category]).sum()
+                # reassign cur month (going back in time)
                 cur_month -= 1
 
+            # rename amount dollars column to the month/year spending
             datestring = f"{prev_month}/{str(cur_year)[2:]}"
             prev.rename(columns={'amount_dollars': datestring}, inplace=True)
+            # advance the ticker
             ticker += 1
 
         else:
+            # if cur_month is January
             if cur_month == 1:
+                # set prev month to Decemeber
                 prev_month = 12
+                # subset user expenses to include data from Decemeber of the prvious year
                 other = user_expenses_df[(user_expenses_df['date'].dt.month == (
                     prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
                 other = other.groupby([category]).sum()
+                # group df by category and sum the amount spent
                 prev = pd.concat([prev, other], axis=1, sort=True)
+                # reassign cur month (going back in time)
                 cur_month = prev_month
+                # reassign cur year (going back in time)
                 cur_year -= 1
             else:
+                # prev month is the month before the cur month
                 prev_month = cur_month - 1
+                # subset user expenses to include data from pervious month of current year
                 user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
                     prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
+                # group df by category and sum the amount spent
                 other = user_exp_prev.groupby([category]).sum()
+                # concatenate 2 subsetted dataframes
                 prev = pd.concat([prev, other], axis=1, sort=True)
+                # reassign cur year (going back in time)
                 cur_month -= 1
 
+            # rename amount dollars column to the month/year spending
             datestring = f"{prev_month}/{str(cur_year)[2:]}"
             prev.rename(columns={'amount_dollars': datestring}, inplace=True)
+            # advance the ticker
             ticker += 1
 
     if weighted:
@@ -125,6 +153,89 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
 
     return prev
 
+def monthly_spending_totals(user_expenses_df, num_months=6, category='grandparent_category_name'):
+    # ticker to track how many times we have iterated
+    ticker = 0
+    # latest month we have data on for user
+    cur_month = user_expenses_df['date'].max().month
+    # latest year we have data on for user
+    cur_year = user_expenses_df['date'].max().year
+
+    while ticker < num_months:
+        # on first iteration
+        if ticker == 0:
+            
+            # if cur_month is January
+            if cur_month == 1:
+                # set prev month to December
+                prev_month = 12
+                # subset user expenses to include data from Decemeber of the prvious year
+                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
+                    prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
+                # group df by category and sum the amount spent
+                prev = user_exp_prev.groupby([category]).sum()
+                # reassign cur month (going back in time)
+                cur_month = prev_month
+                # reassign cur year (going back in time)
+                cur_year -= 1
+
+            else:
+                # prev month is the month before the cur month
+                prev_month = cur_month - 1
+                # subset user expenses to include data from pervious month of current year
+                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
+                    prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
+                # group df by category and sum the amount spent
+                prev = user_exp_prev.groupby([category]).sum()
+                # reassign cur month (going back in time)
+                cur_month -= 1
+
+            # rename amount dollars column to the month/year spending
+            datestring = f"{prev_month}/{str(cur_year)[2:]}"
+            prev.rename(columns={'amount_dollars': datestring}, inplace=True)
+            # advance the ticker
+            ticker += 1
+
+        else:
+            # if cur_month is January
+            if cur_month == 1:
+                # set prev month to Decemeber
+                prev_month = 12
+                # subset user expenses to include data from Decemeber of the prvious year
+                other = user_expenses_df[(user_expenses_df['date'].dt.month == (
+                    prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
+                other = other.groupby([category]).sum()
+                # group df by category and sum the amount spent
+                prev = pd.concat([prev, other], axis=1, sort=True)
+                # reassign cur month (going back in time)
+                cur_month = prev_month
+                # reassign cur year (going back in time)
+                cur_year -= 1
+            else:
+                # prev month is the month before the cur month
+                prev_month = cur_month - 1
+                # subset user expenses to include data from pervious month of current year
+                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
+                    prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
+                # group df by category and sum the amount spent
+                other = user_exp_prev.groupby([category]).sum()
+                # concatenate 2 subsetted dataframes
+                prev = pd.concat([prev, other], axis=1, sort=True)
+                # reassign cur year (going back in time)
+                cur_month -= 1
+
+            # rename amount dollars column to the month/year spending
+            datestring = f"{prev_month}/{str(cur_year)[2:]}"
+            prev.rename(columns={'amount_dollars': datestring}, inplace=True)
+            # advance the ticker
+            ticker += 1
+
+    prev.fillna(value=0, inplace=True)
+    cols = [prev.columns[i] for i in range(len(prev.columns)-1, -1, -1)]
+    prev = prev[cols]
+    prev = prev.transpose()
+
+    return prev
 
 def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
     """
@@ -179,6 +290,65 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
         return (budget_df, trimmed_cats)
     
     return budget_df
+
+def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
+    """
+    Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
+    A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
+    An optional second threshold can be set to check whether or not the new row should be added or discarded.
+    By default, the function will trim the 'mean' column. A different column can be specified by setting the 'trim_name' parameter.
+    The new row's name will default to "Misc." but can be set using the 'name' parameter.
+    By default, this function will modify the dataframe in place. Set in_place to False to disable this.
+    The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
+    with the first entry being the dataframe and the second entry being the list of discarded categories.
+    """
+    # Use a copy if in_place is set to false
+    if in_place == False:
+        budget = budget.copy()
+    # If thresholds were set to fractions, then calculate fraction of total average
+    # spending and re-assign thresholds
+    if 0 < threshold_1 < 1:
+        total_budget = 0
+        for cat in budget:
+          total_budget += budget[cat]
+        threshold_1 *= total_budget
+    if 0 < threshold_2 < 1:
+        total_budget = 0
+        for cat in budget:
+          total_budget += budget[cat]
+        threshold_2 *= total_budget
+    # Get budget categories. Since we're modifying the budget dictioanry in the below loop, we convert to list or use a copy of budget.
+    categories = list(budget.keys())
+    # Track the eliminated categories and the sum of their budgeted amounts
+    trimmed_cats = []
+    trimmed_sum = 0
+    # For each category, check if the budget_amount is below threshold_1
+    # If it is, update trimmed_cats and trimmed_sum then delete the row
+    for cat in categories:
+        budget_amount = budget[cat]
+        if budget_amount < threshold_1:
+            trimmed_sum += budget_amount
+            trimmed_cats.append(cat)
+            del budget[cat]
+    # If trimmed_sum is greater than threshold_2, then we add a new row containing
+    # the sum of the means from the deleted rows
+    if trimmed_sum > threshold_2:
+        budget[name] = trimmed_sum
+    # If save = True, then we return both the budget and the deleted categories
+    if save:
+        return (budget, trimmed_cats)
+    return budget
+
+def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
+    """
+    Checks the output of total_spending_by_month_df for instances where
+    the column contains a certain # of totals (min_frequency) and 
+    overrides that value with zero.
+    """
+    for cat in total_spending_by_month_df.columns:
+      total_nonzeros = len(total_spending_by_month_df) - len(total_spending_by_month_df[total_spending_by_month_df[cat] == 0])
+      if total_nonzeros <= min_frequency:
+        total_spending_by_month_df.drop(columns=cat, inplace=True)
 
 
 class User():
@@ -454,29 +624,43 @@ class User():
             fig.show()
 
         return fig.to_json()
+    
+    def predict_budget(self):
+        
+        # warning_list = []
+        
+        # get dataframe of average spending per category over last X months
+        total_spending_by_month_df = monthly_spending_totals(
+            self.expenses, num_months=self.past_months)
+        
+        # sets minimum # months which financial activity occured to 10%
+        min_frequency = int(self.past_months/10)
+        drop_low_frequency_categories(total_spending_by_month_df, min_frequency=min_frequency)
+                
+        budget = {}
+        budget_amount = 0
+        for cat in total_spending_by_month_df.columns:
+          fit1 = SimpleExpSmoothing(np.asarray(total_spending_by_month_df[cat])).fit(smoothing_level=0.6,optimized=False)
+          prediction = fit1.forecast(1)[0]
+          budget_amount += prediction
+          budget[cat] = round(prediction)
 
-    def future_budget(self, monthly_savings_goal=50, num_months=6, weighted=True):
-
-        warning = []
-
-        # get dataframe of average spending per category over last 6 months
-        avg_spending_by_month_df = monthly_avg_spending(
-            self.expenses, num_months=num_months, weighted=weighted)
 
         # Combine small spending categories into an "other" category
-        trimmer(avg_spending_by_month_df, threshold_1=10, threshold_2=25, in_place = True)
-
+        dict_trimmer(budget, threshold_1=0.05, in_place=True)
+        
+        '''
         # WARNING
         # If user has less than 10 transactions, return None + Warning.
         if len(self.expenses) < 10:
             warning = "Insufficient transaction history. We require a minimum of 10 transactions before recommending a budget."
-            return json.dumps([None, warning])
-
+            self.warning = True
+            return json.dumps([None, warning_list])
+        
         # WARNING
         # if savings goal > total budget, set savings goal to 0 and flag warning
-        total_budget = avg_spending_by_month_df['mean'].sum()
-        if monthly_savings_goal > total_budget:
-            warning.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+        if monthly_savings_goal > budget_amount:
+            warning.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {budget_amount}. Please enter a lower savings goal.")
             return json.dumps([None, warning])
 
         # WARNING
@@ -488,27 +672,6 @@ class User():
         # IF transaction history < 6 months of data, add a warning about poor predictions
         if (max(self.expenses['date']) - min(self.expenses['date'])).days < 180:
             warning.append("Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations.")
-
-        # turn into dictionary where key is category and value is average spending
-        # . for that category
-        avg_cat_spending_dict = dict(avg_spending_by_month_df['mean'])
-
-        # label discretionary columns
-        discretionary = ['Food', 'Recreation', 'Shopping', 'Other']
-
-        # add column to df where its True if category is discretionary and False
-        # . otherwise
-        avg_spending_by_month_df['disc'] = [
-            True if x in discretionary else False for x in avg_spending_by_month_df.index.tolist()]
-
-        # get a dictionary of just the discretionary columns and how much was spent
-        disc_dict = dict(
-            avg_spending_by_month_df[avg_spending_by_month_df['disc'] == True]['mean'])
-
-        # reverse dictionary so key is amount spent and value is category
-        disc_dict_reversed = {}
-        for k, v in disc_dict.items():
-            disc_dict_reversed[v] = k
         
         # WARNING
         # if no discretionary caterories are found, flag warning
@@ -516,67 +679,101 @@ class User():
             warning.append(f"Cannot find a discretionary category. This is likely because of insufficient transaction history.")
             return json.dumps([avg_cat_spending_dict, warning])
 
-
-        # find the key:value pair that shows which discretionary category the user
-        # . spent the most money in
-        max_cat = max(disc_dict_reversed.items())
-
-        if max_cat[0] < monthly_savings_goal:
-            warning = f"Your monthly savings goal of {monthly_savings_goal} is too large compared to your discretionary budget. Please input a smaller savings goal"
-            return json.dumps([None, warning])
-
-        # subtract the monthly savings goal from that category
-        avg_cat_spending_dict[max_cat[1]] -= monthly_savings_goal
-
         # If warning list is not empty, add it to the return body
         if len(warning) > 0:
             return json.dumps([avg_cat_spending_dict, warning])
+        '''
 
-        return avg_cat_spending_dict
+        return budget
+    
+    def budget_modifier(self, budget, monthly_savings_goal=50):
+        
+        # get dataframe of average spending per category over last X months
+        total_spending_by_month_df = monthly_spending_totals(
+            self.expenses, num_months=self.past_months)
+        
+        standard_dev = 0
+        discretionary = ''
+        for cat in total_spending_by_month_df.columns:
+          new_std = total_spending_by_month_df[cat].std()
+          if new_std > standard_dev:
+            standard_dev = new_std
+            discretionary = cat
+          
+        budget[discretionary] -= monthly_savings_goal
 
-    def current_month_spending(self, date_cutoff = None):
+        return budget
+    
+    def current_month_spending(self, fixed_categories, current=True, date_cutoff = None):
         """
         Return a user's spending history for their most recent month containing
         spending transactions.
         An int can be passed into the optional date_cutoff parameter to get 
         history up to but not including the date specified.
         """
-
-        # get the year and month of the most recent transactions
-        cur_year = self.expenses['date'].max().year
-        cur_month = self.expenses['date'].max().month
-
+        if current:
+            cur_year = dt.datetime.now().year
+            cur_month = dt.datetime.now().month
+        if not current:
+            # get the year and month of the most recent transactions
+            cur_year = self.expenses['date'].max().year
+            cur_month = self.expenses['date'].max().month
+            
         # filter user expenses down to the most recent month
         user_exp = self.expenses.copy()
         cur_month_expenses = user_exp[(user_exp['date'].dt.month == cur_month) &
                                       (user_exp['date'].dt.year == cur_year)]
-
+        
         # If a cutoff has been specified, consider only the days in the month up to and including the cutoff
         if date_cutoff:
             cur_month_expenses = cur_month_expenses[ cur_month_expenses['date'].dt.day <= date_cutoff]
-
+        
         # get total spending by category
         grouped_expenses = cur_month_expenses.groupby(
             ['grandparent_category_name']).sum()
         grouped_expenses = grouped_expenses.round({'amount_dollars': 2})
         grouped_dict = dict(grouped_expenses['amount_dollars'])
-
-        # use avg_spending_by_month_df() and trimmer() to get a dataframe of our recommended monthly budget
-        avg_spending_by_month_df = monthly_avg_spending(
-            self.expenses, num_months=self.past_months)
-        trimmer(avg_spending_by_month_df, threshold_1=10, threshold_2=25, in_place = True)
-
-        # loop through categories in the recommended budget and add in categories that are present in the 
-        # recommended budget but the user has not spent month on them yet this month
-        for cat in avg_spending_by_month_df.index:
-            if cat not in grouped_dict:
-                grouped_dict[cat] = 0
+        
+        trimmed_budget = {}
+        total_budget = 0
+        moved = []
+        # loop through current expense categories
+        for category in grouped_dict:
+            total_budget += grouped_dict[category]
+            # if the category is not a fixed (budgeted) category
+            if category not in fixed_categories:
+                # add it to be empty dict to be trimmed
+                trimmed_budget[category] = grouped_dict[category]
+                # Track what categories are added. So when we combine the 2 dictionaries (fixed and unfixed), we know not to count these twice.
+                moved.append(category)
+              
+        # categories with amounts below this threshold will be combined into a "misc." category
+        threshold_1 = total_budget*0.03
+        
+        # use trimmer to combine small categories into a misc. category
+        dict_trimmer(trimmed_budget, threshold_1=threshold_1, in_place=True)
+        
+        # Loop through grouped_dict and add it's entries to trimmed_budget.
+        for cat in grouped_dict:
+            # If the category was aleady added to trimmed budget, pass
+            # Cannot use trimmed_budget.keys() since some categories were removed and combined into Misc.
+            if cat in moved:
+                pass
+            else:
+                # If the category was not moved, but exists in both dictionaries, then add them together
+                # This only happens when Misc. is a fixed category and the trimmer generates another Misc. category
+                if cat in trimmed_budget:
+                    trimmed_budget[cat] += grouped_dict[cat]
+                # Otherwise, we simply copy the entry into our trimmed_budget
+                else:
+                    trimmed_budget[cat] = grouped_dict[cat]
                 
-        # Edgecase hotfix
-        # Loop through categories in our dictionary of current expenses
-        # If a category was not planned for in the budget, delete it from the current spending dictionary
-        for cat in grouped_dict.keys():
-            if cat not in avg_spending_by_month_df.index:
-                del grouped_dict[cat]
-
-        return grouped_dict
+        # loop through fixed (budgeted) categories
+        for category in fixed_categories:
+            # if the user has not spent money in the category this month:
+            if category not in trimmed_budget:
+                # add it to the grouped_dict with $0 amount to show money hasn't
+                #. been spent in that category yet
+                trimmed_budget[category] = 0
+                
+        return trimmed_budget
