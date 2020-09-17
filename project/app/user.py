@@ -6,7 +6,7 @@ import json
 import datetime as dt
 
 from datetime import timedelta
-from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+from statsmodels.tsa.api import SimpleExpSmoothing, ExponentialSmoothing
 
 def get_last_time_period(transaction_df, time_period='week'):
     """
