@@ -44,115 +44,6 @@ def get_last_time_period(transaction_df, time_period='week'):
 
     return subset
 
-def weighted_avg(data):
-    """
-    Given a dataframe
-    Return the datafram with a new column of weighted averages
-    """
-    categories = data.index
-    # get number of timepoints/observations and create weights
-    N = data.shape[1]
-    weights = [i for i in range(N, 0, -1)]
-    averages = []
-    # for each categorie, calculate the weighted average and
-    # store in the averages list
-    for cat in categories:
-        cat_data = list(data.loc[cat])
-        # replace nan vaalues with 0
-        for i in range(len(cat_data)):
-            if str(cat_data[i]) == 'nan':
-                cat_data[i] = 0
-        avg = np.average(cat_data, weights=weights)
-        averages.append(avg)
-
-    data['mean'] = averages
-    data = data.round()
-    return data
-
-def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_category_name', weighted=True):
-    # ticker to track how many times we have iterated
-    ticker = 0
-    # latest month we have data on for user
-    cur_month = user_expenses_df['date'].max().month
-    # latest year we have data on for user
-    cur_year = user_expenses_df['date'].max().year
-
-    while ticker < num_months:
-        # on first iteration
-        if ticker == 0:
-            
-            # if cur_month is January
-            if cur_month == 1:
-                # set prev month to December
-                prev_month = 12
-                # subset user expenses to include data from Decemeber of the prvious year
-                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
-                    prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
-                # group df by category and sum the amount spent
-                prev = user_exp_prev.groupby([category]).sum()
-                # reassign cur month (going back in time)
-                cur_month = prev_month
-                # reassign cur year (going back in time)
-                cur_year -= 1
-
-            else:
-                # prev month is the month before the cur month
-                prev_month = cur_month - 1
-                # subset user expenses to include data from pervious month of current year
-                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
-                    prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
-                # group df by category and sum the amount spent
-                prev = user_exp_prev.groupby([category]).sum()
-                # reassign cur month (going back in time)
-                cur_month -= 1
-
-            # rename amount dollars column to the month/year spending
-            datestring = f"{prev_month}/{str(cur_year)[2:]}"
-            prev.rename(columns={'amount_dollars': datestring}, inplace=True)
-            # advance the ticker
-            ticker += 1
-
-        else:
-            # if cur_month is January
-            if cur_month == 1:
-                # set prev month to Decemeber
-                prev_month = 12
-                # subset user expenses to include data from Decemeber of the prvious year
-                other = user_expenses_df[(user_expenses_df['date'].dt.month == (
-                    prev_month)) & (user_expenses_df['date'].dt.year == (cur_year - 1))]
-                other = other.groupby([category]).sum()
-                # group df by category and sum the amount spent
-                prev = pd.concat([prev, other], axis=1, sort=True)
-                # reassign cur month (going back in time)
-                cur_month = prev_month
-                # reassign cur year (going back in time)
-                cur_year -= 1
-            else:
-                # prev month is the month before the cur month
-                prev_month = cur_month - 1
-                # subset user expenses to include data from pervious month of current year
-                user_exp_prev = user_expenses_df[(user_expenses_df['date'].dt.month == (
-                    prev_month)) & (user_expenses_df['date'].dt.year == cur_year)]
-                # group df by category and sum the amount spent
-                other = user_exp_prev.groupby([category]).sum()
-                # concatenate 2 subsetted dataframes
-                prev = pd.concat([prev, other], axis=1, sort=True)
-                # reassign cur year (going back in time)
-                cur_month -= 1
-
-            # rename amount dollars column to the month/year spending
-            datestring = f"{prev_month}/{str(cur_year)[2:]}"
-            prev.rename(columns={'amount_dollars': datestring}, inplace=True)
-            # advance the ticker
-            ticker += 1
-
-    if weighted:
-        prev = weighted_avg(prev)
-    else:
-        prev['mean'] = round(prev.mean(axis=1))
-
-    return prev
-
 def monthly_spending_totals(user_expenses_df, num_months=6, category='grandparent_category_name'):
     # ticker to track how many times we have iterated
     ticker = 0
@@ -369,7 +260,7 @@ class User():
         self.expenses = self.data[(self.data['grandparent_category_name'] != 'Transfers') & (
             self.data['amount_dollars'] > 0)]
         self.show = show
-        self.past_months = 6
+        self.past_months = 12
         self.hole = hole
 
     def get_user_data(self):
