@@ -529,7 +529,7 @@ class User():
         warning_list = []
         
         # calculate number of transactions in user's expense data
-        nun_transactions = len(self.expenses)
+        num_transactions = len(self.expenses)
         # WARNING (Fatal)
         # If user has less than 10 transactions, return None + Warning.
         if num_transactions < 10:
@@ -549,7 +549,7 @@ class User():
         # WARNING (Fatal)
         # If transaction history < 2 months of data (60 days), add a warning about poor predictions
         if  transaction_history < 60:
-            warning.append("Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations.")
+            warning = "Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations."
             warning_list.append(warning)
             return json.dumps([None, warning_list])
 
@@ -579,34 +579,23 @@ class User():
 
         # Combine small spending categories into an "other" category
         dict_trimmer(budget, threshold_1=0.05, in_place=True)
-        
-        '''
-        # WARNING
-        # if savings goal > total budget, set savings goal to 0 and flag warning
-        if monthly_savings_goal > budget_amount:
-            warning.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {budget_amount}. Please enter a lower savings goal.")
-            return json.dumps([None, warning])
-
-
-        # WARNING
-        # if no discretionary caterories are found, flag warning
-        if len(disc_dict_reversed) == 0:
-            warning.append(f"Cannot find a discretionary category. This is likely because of insufficient transaction history.")
-            return json.dumps([avg_cat_spending_dict, warning])
 
         # If warning list is not empty, add it to the return body
-        if len(warning) > 0:
-            return json.dumps([avg_cat_spending_dict, warning])
-        '''
+        if len(warning_list) > 0:
+            return json.dumps([budget, warning_list])
 
         return budget
     
+
     def budget_modifier(self, budget, monthly_savings_goal=50):
         
+        warning_list = []
+
         # get dataframe of average spending per category over last X months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
         
+        # choose a discretionary spending category based on greatest standard dev.
         standard_dev = 0
         discretionary = ''
         for cat in total_spending_by_month_df.columns:
@@ -614,10 +603,37 @@ class User():
           if new_std > standard_dev:
             standard_dev = new_std
             discretionary = cat
-          
+
+        # get total budget
+        total_budget = 0
+        for category in budget:
+            total_budget += budget[category]
+        
+        # WARNING (Fatal)
+        # if savings goal > total budget, set savings goal to 0 and flag warning
+        if monthly_savings_goal > total_budget:
+            warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            return json.dumps([None, warning_list])
+
+        # WARNING (Non-Fatal)
+        # if savings goal > 30% of total budget, add warning about poor budget recommendation
+        if monthly_savings_goal > total_budget * 0.3:
+            warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
+
+        # WARNING (Fatal)
+        # if savings goal > discretionary spending category, set savings goal to 0 and flag warning
+        if monthly_savings_goal >  budget[discretionary]:
+            warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            return json.dumps([None, warning_list])
+
         budget[discretionary] -= monthly_savings_goal
 
+        # If warning list is not empty, add it to the return body
+        if len(warning_list) > 0:
+            return json.dumps([budget, warning_list])
+
         return budget
+    
     
     def current_month_spending(self, fixed_categories, current=True, date_cutoff = None):
         """
