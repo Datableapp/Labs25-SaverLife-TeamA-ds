@@ -526,8 +526,40 @@ class User():
     
     def predict_budget(self):
         
-        # warning_list = []
+        warning_list = []
         
+        # calculate number of transactions in user's expense data
+        nun_transactions = len(self.expenses)
+        # WARNING (Fatal)
+        # If user has less than 10 transactions, return None + Warning.
+        if num_transactions < 10:
+            warning = "Insufficient transaction history. A minimum of 10 transactions is required before generating a budget."
+            warning_list.append(warning)
+            return json.dumps([None, warning_list])
+        
+        # WARNING (Non-Fatal)
+        # If user has less than 100 transactions, add a warning about poor prediction quality
+        elif num_transactions < 100:
+            warning = "Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations."
+            warning_list.append(warning)
+
+        # calculate how many days does the user's transaction history cover
+        transaction_history = (max(self.expenses['date']) - min(self.expenses['date'])).days
+
+        # WARNING (Fatal)
+        # If transaction history < 2 months of data (60 days), add a warning about poor predictions
+        if  transaction_history < 60:
+            warning.append("Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations.")
+            warning_list.append(warning)
+            return json.dumps([None, warning_list])
+
+        # WARNING (Non-Fatal)
+        # IF transaction history < 6 months of data (180 days), add a warning about poor prediction quality
+        elif transaction_history < 180:
+            warning = "Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations."
+            warning_list.append(warning)
+        
+
         # get dataframe of average spending per category over last X months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
@@ -550,28 +582,12 @@ class User():
         
         '''
         # WARNING
-        # If user has less than 10 transactions, return None + Warning.
-        if len(self.expenses) < 10:
-            warning = "Insufficient transaction history. We require a minimum of 10 transactions before recommending a budget."
-            self.warning = True
-            return json.dumps([None, warning_list])
-        
-        # WARNING
         # if savings goal > total budget, set savings goal to 0 and flag warning
         if monthly_savings_goal > budget_amount:
             warning.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {budget_amount}. Please enter a lower savings goal.")
             return json.dumps([None, warning])
 
-        # WARNING
-        # IF number of transactions < 100, add a warning about poor predictions
-        if len(self.expenses) < 100:
-            warning.append(f"Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations.")
 
-        # WARNING
-        # IF transaction history < 6 months of data, add a warning about poor predictions
-        if (max(self.expenses['date']) - min(self.expenses['date'])).days < 180:
-            warning.append("Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations.")
-        
         # WARNING
         # if no discretionary caterories are found, flag warning
         if len(disc_dict_reversed) == 0:
