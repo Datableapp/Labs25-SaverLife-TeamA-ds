@@ -591,6 +591,11 @@ class User():
         
         warning_list = []
 
+        # get total budget
+        total_budget = 0
+        for category in budget:
+            total_budget += budget[category]
+    
         # WARNING (Fatal)
         # if savings goal > total budget, set savings goal to 0 and flag warning
         if monthly_savings_goal > total_budget:
@@ -614,12 +619,6 @@ class User():
           if new_std > standard_dev:
             standard_dev = new_std
             discretionary = cat
-
-        # get total budget
-        total_budget = 0
-        for category in budget:
-            total_budget += budget[category]
-    
 
         budget[discretionary] -= monthly_savings_goal
 
