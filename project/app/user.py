@@ -263,6 +263,7 @@ class User():
         self.past_months = 12
         self.hole = hole
         self.warning = 0 
+        self.warning_list = []
 
     def get_user_data(self):
         """
@@ -527,23 +528,22 @@ class User():
     
     def predict_budget(self):
         
-        warning_list = []
-        
         # calculate number of transactions in user's expense data
         num_transactions = len(self.expenses)
+
         # WARNING (Fatal)
         # If user has less than 10 transactions, return None + Warning.
         if num_transactions < 10:
             warning = "Insufficient transaction history. A minimum of 10 transactions is required before generating a budget."
-            warning_list.append(warning)
+            self.warning_list.append(warning)
             self.warning = 2
-            return json.dumps([None, warning_list])
+            return None
         
         # WARNING (Non-Fatal)
         # If user has less than 100 transactions, add a warning about poor prediction quality
         elif num_transactions < 100:
             warning = "Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations."
-            warning_list.append(warning)
+            self.warning_list.append(warning)
             self.warning = 1
 
         # calculate how many days does the user's transaction history cover
@@ -553,15 +553,15 @@ class User():
         # If transaction history < 2 months of data (60 days), add a warning about poor predictions
         if  transaction_history < 60:
             warning = "Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations."
-            warning_list.append(warning)
+            self.warning_list.append(warning)
             self.warning = 2
-            return json.dumps([None, warning_list])
+            return None
 
         # WARNING (Non-Fatal)
         # IF transaction history < 6 months of data (180 days), add a warning about poor prediction quality
         elif transaction_history < 180:
             warning = "Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations."
-            warning_list.append(warning)
+            self.warning_list.append(warning)
             self.warning = 1
         
 
@@ -585,12 +585,8 @@ class User():
         # Combine small spending categories into an "other" category
         dict_trimmer(budget, threshold_1=0.05, in_place=True)
 
-        # If warning list is not empty, add it to the return body
-        if len(warning_list) > 0:
-            return json.dumps([budget, warning_list])
-
         return budget
-
+    
     def budget_modifier(self, budget, monthly_savings_goal=50):
         
         warning_list = []
@@ -605,8 +601,8 @@ class User():
         if monthly_savings_goal > total_budget:
             warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
             self.warning = 2
-            return json.dumps([None, warning_list])
-
+            return None
+        
         # WARNING (Non-Fatal)
         # if savings goal > 30% of total budget, add warning about poor budget recommendation
         if monthly_savings_goal > total_budget * 0.3:
@@ -627,10 +623,6 @@ class User():
             discretionary = cat
 
         budget[discretionary] -= monthly_savings_goal
-
-        # If warning list is not empty, add it to the return body
-        if len(warning_list) > 0:
-            return json.dumps([budget, warning_list])
 
         return budget
     
