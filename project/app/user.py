@@ -615,16 +615,17 @@ class User():
             warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
             return json.dumps([None, warning_list])
 
-        # WARNING (Non-Fatal)
-        # if savings goal > 30% of total budget, add warning about poor budget recommendation
-        if monthly_savings_goal > total_budget * 0.3:
-            warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
-
         # WARNING (Fatal)
         # if savings goal > discretionary spending category, set savings goal to 0 and flag warning
         if monthly_savings_goal >  budget[discretionary]:
             warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
             return json.dumps([None, warning_list])
+
+        # WARNING (Non-Fatal)
+        # if savings goal > 30% of total budget, add warning about poor budget recommendation
+        if monthly_savings_goal > total_budget * 0.3:
+            warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
+
 
         budget[discretionary] -= monthly_savings_goal
 
