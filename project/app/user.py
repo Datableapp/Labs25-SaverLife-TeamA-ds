@@ -262,6 +262,7 @@ class User():
         self.show = show
         self.past_months = 12
         self.hole = hole
+        self.warning = 0 
 
     def get_user_data(self):
         """
@@ -535,6 +536,7 @@ class User():
         if num_transactions < 10:
             warning = "Insufficient transaction history. A minimum of 10 transactions is required before generating a budget."
             warning_list.append(warning)
+            self.warning = 2
             return json.dumps([None, warning_list])
         
         # WARNING (Non-Fatal)
@@ -542,6 +544,7 @@ class User():
         elif num_transactions < 100:
             warning = "Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations."
             warning_list.append(warning)
+            self.warning = 1
 
         # calculate how many days does the user's transaction history cover
         transaction_history = (max(self.expenses['date']) - min(self.expenses['date'])).days
@@ -551,6 +554,7 @@ class User():
         if  transaction_history < 60:
             warning = "Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations."
             warning_list.append(warning)
+            self.warning = 2
             return json.dumps([None, warning_list])
 
         # WARNING (Non-Fatal)
@@ -558,6 +562,7 @@ class User():
         elif transaction_history < 180:
             warning = "Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations."
             warning_list.append(warning)
+            self.warning = 1
         
 
         # get dataframe of average spending per category over last X months
@@ -585,7 +590,6 @@ class User():
             return json.dumps([budget, warning_list])
 
         return budget
-    
 
     def budget_modifier(self, budget, monthly_savings_goal=50):
         
@@ -595,17 +599,19 @@ class User():
         total_budget = 0
         for category in budget:
             total_budget += budget[category]
-    
+
         # WARNING (Fatal)
         # if savings goal > total budget, set savings goal to 0 and flag warning
         if monthly_savings_goal > total_budget:
             warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            self.warning = 2
             return json.dumps([None, warning_list])
 
         # WARNING (Non-Fatal)
         # if savings goal > 30% of total budget, add warning about poor budget recommendation
         if monthly_savings_goal > total_budget * 0.3:
             warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
+            self.warning = 1
 
         # get dataframe of average spending per category over last X months
         total_spending_by_month_df = monthly_spending_totals(
@@ -627,7 +633,6 @@ class User():
             return json.dumps([budget, warning_list])
 
         return budget
-    
     
     def current_month_spending(self, fixed_categories, current=True, date_cutoff = None):
         """
