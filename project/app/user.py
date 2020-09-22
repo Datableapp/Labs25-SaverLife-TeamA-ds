@@ -588,8 +588,6 @@ class User():
         return budget
     
     def budget_modifier(self, budget, monthly_savings_goal=50):
-        
-        warning_list = []
 
         # get total budget
         total_budget = 0
@@ -599,14 +597,14 @@ class User():
         # WARNING (Fatal)
         # if savings goal > total budget, set savings goal to 0 and flag warning
         if monthly_savings_goal > total_budget:
-            warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
             self.warning = 2
             return None
         
         # WARNING (Non-Fatal)
         # if savings goal > 30% of total budget, add warning about poor budget recommendation
         if monthly_savings_goal > total_budget * 0.3:
-            warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
+            self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
             self.warning = 1
 
         # get dataframe of average spending per category over last X months
