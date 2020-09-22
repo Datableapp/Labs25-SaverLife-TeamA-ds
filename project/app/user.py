@@ -262,6 +262,7 @@ class User():
         self.show = show
         self.past_months = 12
         self.hole = hole
+        self.misc = []
         self.warning = 0 
         self.warning_list = []
 
@@ -583,7 +584,7 @@ class User():
 
 
         # Combine small spending categories into an "other" category
-        dict_trimmer(budget, threshold_1=0.05, in_place=True)
+        budget, self.misc = dict_trimmer(budget, threshold_1=0.05, in_place=False, save=True)
 
         return budget
     
