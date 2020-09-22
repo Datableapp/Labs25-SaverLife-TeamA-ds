@@ -95,14 +95,14 @@ async def future_budget(budget: Budget):
     # predict budget using time series model
     pred_bud = user.predict_budget()
 
-    # if a fatal error was encountered, return no budget along with the warning list
+    # if a fatal error was encountered while generating the budget, return no budget along with the warning list
     if user.warning == 2:
         return json.dumps([None, user.warning_list])
 
     # modify budget based on savings goal
     modified_budget = user.budget_modifier(pred_bud, monthly_savings_goal=monthly_savings_goal)
 
-    # if a fatal error was encountered, return no budget along with the warning list
+    # if a fatal error was encountered while modifying the budget, return no budget along with the warning list
     if user.warning == 2:
         return json.dumps([None, user.warning_list])
 
