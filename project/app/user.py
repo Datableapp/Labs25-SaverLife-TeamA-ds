@@ -574,7 +574,8 @@ class User():
         # sets minimum # months which financial activity occured to 10%
         min_frequency = int(self.past_months/10)
         drop_low_frequency_categories(total_spending_by_month_df, min_frequency=min_frequency)
-                
+        
+        # Loop through spending categories and forecast spending for the coming month.
         budget = {}
         budget_amount = 0
         for cat in total_spending_by_month_df.columns:
@@ -609,7 +610,7 @@ class User():
             self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
             self.warning = 1
 
-        # get dataframe of average spending per category over last X months
+        # get dataframe of average spending per category over last self.past_months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
         
