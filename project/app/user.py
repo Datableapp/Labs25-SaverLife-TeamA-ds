@@ -613,12 +613,16 @@ class User():
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
         
+        # Add a new misc. category by summing all columns contained in self.misc (i.e. the columns that were combined by the trimmer in predict_budget() )
+        total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose().sum()
+
+        # Drop the columns that were combined into the "Misc." column
+        total_spending_by_month_df.drop(columns = self.misc, inplace=True)
+
         # For each category in our budget, calculate the standard deviation for its monthly spending
         # Create a dictionary where each key is a standard deviation and each value is the corresponding category
         standard_devs = {}
         for cat in budget:
-          if cat == 'Misc.':
-            continue
           std = total_spending_by_month_df[cat].std()
           standard_devs[std] = cat
 
