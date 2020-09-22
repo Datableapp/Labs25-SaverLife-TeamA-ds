@@ -612,16 +612,14 @@ class User():
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
         
-        # choose a discretionary spending category based on greatest standard dev.
-        standard_dev = 0
-        discretionary = ''
-        for cat in total_spending_by_month_df.columns:
-          new_std = total_spending_by_month_df[cat].std()
-          if new_std > standard_dev:
-            standard_dev = new_std
-            discretionary = cat
-
-        budget[discretionary] -= monthly_savings_goal
+        # For each category in our budget, calculate the standard deviation for its monthly spending
+        # Create a dictionary where each key is a standard deviation and each value is the corresponding category
+        standard_devs = {}
+        for cat in budget:
+          if cat == 'Misc.':
+            continue
+          std = total_spending_by_month_df[cat].std()
+          standard_devs[std] = cat
 
         return budget
     
