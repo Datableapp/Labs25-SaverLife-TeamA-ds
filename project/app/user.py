@@ -621,6 +621,23 @@ class User():
           std = total_spending_by_month_df[cat].std()
           standard_devs[std] = cat
 
+        # We set the number of discretionary categories equal to half the number of total categories rounded up to the nearest whole number
+        num_discretionary = ceil( len(budget)/2 )
+
+        # get a list of the top std scores 
+        top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
+        
+        # get the total budget of all discretionary categories
+        total_disc = sum([budget[standard_devs[score]] for score in top_stds])
+        
+        # For the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
+        # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary". 
+        for score in top_stds:
+          category = standard_devs[score]
+          scaling_factor = score / sum(top_stds)
+          scaled_savings_goal = round( monthly_savings_goal * scaling_factor )
+          budget[category] -= scaled_savings_goal
+
         return budget
     
     def current_month_spending(self, fixed_categories, current=True, date_cutoff = None):
