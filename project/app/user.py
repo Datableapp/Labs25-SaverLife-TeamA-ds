@@ -5,6 +5,7 @@ import numpy as np
 import json
 import datetime as dt
 
+from math import ceil
 from datetime import timedelta
 from statsmodels.tsa.api import SimpleExpSmoothing, ExponentialSmoothing
 
@@ -630,6 +631,12 @@ class User():
         # get the total budget of all discretionary categories
         total_disc = sum([budget[standard_devs[score]] for score in top_stds])
         
+        # If savings goal > total_disc, then we add more categories to the list until we have enough
+        while monthly_savings_goal > total_disc:
+            num_discretionary += 1
+            top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
+            total_disc = [budget[standard_devs[score]] for score in top_stds]
+
         # For the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
         # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary". 
         for score in top_stds:
