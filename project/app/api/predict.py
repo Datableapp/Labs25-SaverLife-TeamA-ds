@@ -2,6 +2,7 @@ import logging
 import random
 import pandas as pd
 import numpy as np
+import json
 
 from fastapi import APIRouter, HTTPException, Request, Header, Query
 from app.helpers import *
@@ -90,10 +91,24 @@ async def future_budget(budget: Budget):
 
     # instantiate the user
     user = User(transactions)
+
     # predict budget using time series model
     pred_bud = user.predict_budget()
+
+    # if a fatal error was encountered, return no budget along with the warning list
+    if user.warning == 2:
+        return json.dumps([None, user.warning_list])
+
     # modify budget based on savings goal
     modified_budget = user.budget_modifier(pred_bud, monthly_savings_goal=monthly_savings_goal)
+
+    # if a fatal error was encountered, return no budget along with the warning list
+    if user.warning == 2:
+        return json.dumps([None, user.warning_list])
+
+    # if a non-fatal warning was encountered in predict_budget() or budget_modifier(), return the budget along with the warning list
+    elif user.warning == 1:
+        return json.dumps([modified_budget, user.warning_list])
 
     return modified_budget
 
