@@ -5,6 +5,7 @@ import numpy as np
 import json
 import datetime as dt
 
+from math import ceil
 from datetime import timedelta
 from statsmodels.tsa.api import SimpleExpSmoothing, ExponentialSmoothing
 
@@ -262,6 +263,7 @@ class User():
         self.show = show
         self.past_months = 12
         self.hole = hole
+        self.misc = []
         self.warning = 0 
         self.warning_list = []
 
@@ -572,7 +574,8 @@ class User():
         # sets minimum # months which financial activity occured to 10%
         min_frequency = int(self.past_months/10)
         drop_low_frequency_categories(total_spending_by_month_df, min_frequency=min_frequency)
-                
+        
+        # Loop through spending categories and forecast spending for the coming month.
         budget = {}
         budget_amount = 0
         for cat in total_spending_by_month_df.columns:
@@ -583,7 +586,7 @@ class User():
 
 
         # Combine small spending categories into an "other" category
-        dict_trimmer(budget, threshold_1=0.05, in_place=True)
+        budget, self.misc = dict_trimmer(budget, threshold_1=0.05, in_place=False, save=True)
 
         return budget
     
@@ -607,20 +610,45 @@ class User():
             self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
             self.warning = 1
 
-        # get dataframe of average spending per category over last X months
+        # get dataframe of average spending per category over last self.past_months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
         
-        # choose a discretionary spending category based on greatest standard dev.
-        standard_dev = 0
-        discretionary = ''
-        for cat in total_spending_by_month_df.columns:
-          new_std = total_spending_by_month_df[cat].std()
-          if new_std > standard_dev:
-            standard_dev = new_std
-            discretionary = cat
+        # Add a new misc. category by summing all columns contained in self.misc (i.e. the columns that were combined by the trimmer in predict_budget() )
+        total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose().sum()
 
-        budget[discretionary] -= monthly_savings_goal
+        # Drop the columns that were combined into the "Misc." column
+        total_spending_by_month_df.drop(columns = self.misc, inplace=True)
+
+        # For each category in our budget, calculate the standard deviation for its monthly spending
+        # Create a dictionary where each key is a standard deviation and each value is the corresponding category
+        standard_devs = {}
+        for cat in budget:
+          std = total_spending_by_month_df[cat].std()
+          standard_devs[std] = cat
+
+        # We set the number of discretionary categories equal to half the number of total categories rounded up to the nearest whole number
+        num_discretionary = ceil( len(budget)/2 )
+
+        # get a list of the top std scores 
+        top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
+        
+        # get the total budget of all discretionary categories
+        total_disc = sum([budget[standard_devs[score]] for score in top_stds])
+        
+        # If savings goal > total_disc, then we add more categories to the list until we have enough
+        while monthly_savings_goal > total_disc:
+            num_discretionary += 1
+            top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
+            total_disc = [budget[standard_devs[score]] for score in top_stds]
+
+        # For the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
+        # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary". 
+        for score in top_stds:
+          category = standard_devs[score]
+          scaling_factor = score / sum(top_stds)
+          scaled_savings_goal = round( monthly_savings_goal * scaling_factor )
+          budget[category] -= scaled_savings_goal
 
         return budget
     
