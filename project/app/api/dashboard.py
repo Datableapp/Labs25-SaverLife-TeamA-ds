@@ -46,6 +46,9 @@ async def dashboard(bank_account_id: int):
     transactions.drop(columns=['parent_category_name', 'grandparent_category_name'],
                       inplace=True)
     
+    # sort so that most recent transactions are at the top
+    transactions.sort_values(by='date', ascending=False, inplace=True)
+    
     # Rename columns
     transactions.rename(columns={
         'category_name': 'Category',
