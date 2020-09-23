@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import json
 
-from fastapi import APIRouter, HTTPException, Request, Header, Query
+from fastapi import APIRouter, HTTPException, Request, Query
 from app.helpers import *
 from app.user import User
 from pydantic import BaseModel, Field, validator
@@ -14,31 +14,11 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
-
-class Item(BaseModel):
-    """Use this data model to parse the request body JSON."""
-
-    x1: float = Field(..., example=3.14)
-    x2: int = Field(..., example=-42)
-    x3: str = Field(..., example='banjo')
-
-    def to_df(self):
-        """Convert pydantic object to pandas dataframe with 1 row."""
-        return pd.DataFrame([dict(self)])
-
-    @validator('x1')
-    def x1_must_be_positive(cls, value):
-        """Validate that x1 is a positive number."""
-        assert value > 0, f'x1 == {value}, must be > 0'
-        return value
-
-
 class Budget(BaseModel):
     """Use this data model to parse the request body JSON."""
 
     bank_account_id: int = Field(..., example=131952)
     monthly_savings_goal: int = Field(..., example=50)
-    placeholder: str = Field(..., example='banjo')
 
     def to_df(self):
         """Convert pydantic object to pandas dataframe with 1 row."""
@@ -73,7 +53,6 @@ async def future_budget(budget: Budget):
     ### Request Body
     - `bank_account_id`: int
     - `monthly_savings_goal`: integer
-    - `placeholder`: string
 
     ### Response
     - `category`: grandparent category name
