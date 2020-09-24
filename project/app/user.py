@@ -274,14 +274,20 @@ def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
 class User():
     def __init__(self, data, name=None, show=False, hole=0.8):
         """
-        Constructor for the User class.
+        Constructor for the User class. 
 
-        Parameters:
-              id (str): user_id
-              transactions (dataframe): dataframe consisting of sample transactions
-              name (str): user's name. Default is to have no name.
-              show (bool): set to True to display graphs after they are generated. Defaults to False
+        Parameters and Attributes:
+            data (dataframe): dataframe of user's transactions
+            name (str): user's name (optional)
+            show (bool): set to True to display graphs after they are generated. Defaults to False
+            hole (float): sets size of the donut hole for the categorical_spending() charts
+
+            self.expenses (dataframe): user data filtered down to transactions that are positive and are not transfers
+            self.misc (list): list used to store the names of categories that are combined into the "Misc." category
+            self.warning (int): warning flag used to indicate that an error has been encountered during budget generation
+            self.warning_list (list): list used to contain warning messaged
         """
+
         self.name = name
         if not self.name:
             self.name = 'Test User'
