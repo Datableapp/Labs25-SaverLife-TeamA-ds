@@ -45,7 +45,15 @@ def get_last_time_period(transaction_df, time_period='week'):
 
     return subset
 
-def monthly_spending_totals(user_expenses_df, num_months=6, category='grandparent_category_name'):
+def monthly_spending_totals(user_expenses_df, num_months=12, category='grandparent_category_name'):
+    """
+    Given a dataframe of user transactions with category and date information, 
+    return a dataframe with transaction amounts grouped by category and aggregated by month
+
+    By default, only transactions from the past 12 months are used. This can be changed using the num_months parameter.
+    By default, the "grandparent_category_name" feature is used to group transactions. This can be changed using the category parameter.
+    """
+
     # ticker to track how many times we have iterated
     ticker = 0
     # latest month we have data on for user
@@ -122,7 +130,10 @@ def monthly_spending_totals(user_expenses_df, num_months=6, category='grandparen
             # advance the ticker
             ticker += 1
 
+    # Fill NaN values for categories without spending amounts in a given month
     prev.fillna(value=0, inplace=True)
+
+    # Reformat the dataframe so that columns are categores and rows are months.
     cols = [prev.columns[i] for i in range(len(prev.columns)-1, -1, -1)]
     prev = prev[cols]
     prev = prev.transpose()
