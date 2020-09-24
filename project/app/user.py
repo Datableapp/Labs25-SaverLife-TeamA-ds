@@ -573,12 +573,26 @@ class User():
         return fig.to_json()
 
     def predict_budget(self):
+        """
+        Returns a dictionary of spending predictions for the coming month for a user.
+        Users with low or insufficient data will trigger warnings that will be stored in self.warning_list.
+        Small spending categories will be combined into a miscellaneous category. 
+        The names of the combiend categories can be accessed via self.misc.
+
+        Parameters:
+              time_period (str): time frame used to define "recent" transactions
+              category (str): the level of spending category to use. 
+              color_template (str): the plotly sequential color template to use.
+
+        Returns:
+            Python dictionary of spending predictions.
+        """
 
         # calculate number of transactions in user's expense data
         num_transactions = len(self.expenses)
 
         # WARNING (Fatal)
-        # If user has less than 10 transactions, return None + Warning.
+        # if user has less than 10 transactions, return None + Warning.
         if num_transactions < 10:
             warning = "Insufficient transaction history. A minimum of 10 transactions is required before generating a budget."
             self.warning_list.append(warning)
@@ -586,7 +600,7 @@ class User():
             return None
 
         # WARNING (Non-Fatal)
-        # If user has less than 100 transactions, add a warning about poor prediction quality
+        # if user has less than 100 transactions, add a warning about poor prediction quality
         elif num_transactions < 100:
             warning = "Your user history contains less than 100 transactions. It is likely this will negatively impact the quality of our budget recommendations."
             self.warning_list.append(warning)
@@ -597,7 +611,7 @@ class User():
             max(self.expenses['date']) - min(self.expenses['date'])).days
 
         # WARNING (Fatal)
-        # If transaction history < 2 months of data (60 days), add a warning about poor predictions
+        # if transaction history < 2 months of data (60 days), add a warning about poor predictions
         if transaction_history < 60:
             warning = "Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations."
             self.warning_list.append(warning)
@@ -605,7 +619,7 @@ class User():
             return None
 
         # WARNING (Non-Fatal)
-        # IF transaction history < 6 months of data (180 days), add a warning about poor prediction quality
+        # if transaction history < 6 months of data (180 days), add a warning about poor prediction quality
         elif transaction_history < 180:
             warning = "Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations."
             self.warning_list.append(warning)
@@ -620,7 +634,7 @@ class User():
         drop_low_frequency_categories(
             total_spending_by_month_df, min_frequency=min_frequency)
 
-        # Loop through spending categories and forecast spending for the coming month.
+        # loop through spending categories and forecast spending for the coming month
         budget = {}
         budget_amount = 0
         for cat in total_spending_by_month_df.columns:
@@ -630,7 +644,8 @@ class User():
             budget_amount += prediction
             budget[cat] = round(prediction)
 
-        # Combine small spending categories into an "other" category
+        # combine small spending categories into a miscellaneous category
+        # store the names of the small categories in self.misc so that the budget_modifier() method can access them
         budget, self.misc = dict_trimmer(
             budget, threshold_1=0.05, in_place=False, save=True)
 
