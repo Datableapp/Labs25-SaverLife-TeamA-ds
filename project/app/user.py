@@ -575,6 +575,7 @@ class User():
     def predict_budget(self):
         """
         Returns a dictionary of spending predictions for the coming month for a user.
+        Uses exponential smoothing to forecast user spending.
         Users with low or insufficient data will trigger warnings that will be stored in self.warning_list.
         Small spending categories will be combined into a miscellaneous category. 
         The names of the combiend categories can be accessed via self.misc.
@@ -647,7 +648,20 @@ class User():
         return budget
 
     def budget_modifier(self, budget, monthly_savings_goal=50):
+        """
+        Returns a dictionary of recommended spending amounts for the coming month.
+        This method requires predict_budget() to be executed first.
+        Uses standard deviation as a measure of how discretionary a spending category is.
+        Spending categories with higher spending amounts and greater variance are treated as "more discretionary".
+        Savings goals that are exceedingly large relative to the budget will trigger warnings that will be stored in self.warning_list.
 
+        Parameters:
+              budget (dictionary): dictionary containing a user's predicted spending amounts for the coming month. Output of predict_budget(). 
+              monthly_savings_goal (int): the amount of money to remove from the budgeted amounts
+
+        Returns:
+            Python dictionary of spending recommendations.
+        """
         # get total budget
         total_budget = 0
         for category in budget:
@@ -672,21 +686,21 @@ class User():
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
 
-        # Add a new misc. category by summing all columns contained in self.misc (i.e. the columns that were combined by the trimmer in predict_budget() )
+        # add a new misc. category by summing all columns contained in self.misc (i.e. the columns that were combined by the trimmer in predict_budget() )
         total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose(
         ).sum()
 
-        # Drop the columns that were combined into the "Misc." column
+        # drop the columns that were combined into the "Misc." column
         total_spending_by_month_df.drop(columns=self.misc, inplace=True)
 
-        # For each category in our budget, calculate the standard deviation for its monthly spending
-        # Create a dictionary where each key is a standard deviation and each value is the corresponding category
+        # for each category in our budget, calculate the standard deviation for its monthly spending
+        # create a dictionary where each key is a standard deviation and each value is the corresponding category
         standard_devs = {}
         for cat in budget:
             std = total_spending_by_month_df[cat].std()
             standard_devs[std] = cat
 
-        # We set the number of discretionary categories equal to half the number of total categories rounded up to the nearest whole number
+        # set the number of discretionary categories equal to half the number of total categories rounded up to the nearest whole number
         num_discretionary = ceil(len(budget)/2)
 
         # get a list of the top std scores
@@ -696,15 +710,15 @@ class User():
         # get the total budget of all discretionary categories
         total_disc = sum([budget[standard_devs[score]] for score in top_stds])
 
-        # If savings goal > total_disc, then we add more categories to the list until we have enough
+        # if savings goal > total_disc, then we add more categories to the list until we have enough
         while monthly_savings_goal > total_disc:
             num_discretionary += 1
             top_stds = sorted(standard_devs.keys(), reverse=True)[
                 0:num_discretionary]
             total_disc = [budget[standard_devs[score]] for score in top_stds]
 
-        # For the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
-        # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary".
+        # for the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
+        # this has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary".
         for score in top_stds:
             category = standard_devs[score]
             scaling_factor = score / sum(top_stds)
