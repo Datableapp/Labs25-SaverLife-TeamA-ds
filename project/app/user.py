@@ -321,7 +321,6 @@ class User():
               Plotly object of a pie chart in json format
         """
 
-        category = 'grandparent_category_name'
         user_expenses = self.expenses.copy()
 
         # get a list of categories
@@ -332,7 +331,7 @@ class User():
 
         # combine transactions by category (required so that each color matches 1 category/label)
         user_expense_grouped = user_expenses.groupby(
-            ['grandparent_category_name']).sum()
+            [category]).sum()
 
         # for categories that fall under 2% of transactions, group them into the "Other" category
         trimmer(user_expense_grouped, threshold_1=0.02,
@@ -399,6 +398,7 @@ class User():
 
         if self.show:
             fig.show()
+
         return fig.to_json()
 
     def money_flow(self, time_period='week'):
