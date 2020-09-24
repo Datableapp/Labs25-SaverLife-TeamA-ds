@@ -6,11 +6,11 @@
 
 - [Important Links](#important-links)
 
-- [Contributers](#contributers)
+- [Contributors](#contributors)
 
 - [Getting Started](#getting-started)
 
-- [File structure](#file-structure)
+- [File Structure](#file-structure)
 
 - [Wireframe](#wireframe)
 
