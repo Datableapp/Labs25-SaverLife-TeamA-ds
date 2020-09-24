@@ -579,11 +579,6 @@ class User():
         Small spending categories will be combined into a miscellaneous category. 
         The names of the combiend categories can be accessed via self.misc.
 
-        Parameters:
-              time_period (str): time frame used to define "recent" transactions
-              category (str): the level of spending category to use. 
-              color_template (str): the plotly sequential color template to use.
-
         Returns:
             Python dictionary of spending predictions.
         """
