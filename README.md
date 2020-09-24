@@ -1,3 +1,7 @@
+![MIT](https://img.shields.io/badge/license-MIT-green)
+[![Python](https://img.shields.io/pypi/pyversions/FastAPI)](https://www.python.org/downloads/release/python-380/)
+
+
 # README Directory
 
 - [Important Links](#important-links)
