@@ -32,10 +32,10 @@ class Budget(BaseModel):
     def user_ID_must_exist(cls, value):
         """Validate that user_id is a valid ID."""
         conn = psycopg2.connect(user=SAVER_USERNAME, password=SAVER_PASSWORD,
-                             host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
+                                host=SAVER_DB_HOST, dbname=SAVER_DB_NAME)
         query = f"""
         SELECT id
-        FROM PUBLIC.plaid_main_transactions 
+        FROM PUBLIC.plaid_main_transactions
         WHERE bank_account_id = {value}
         LIMIT 1
         """
@@ -56,12 +56,12 @@ async def future_budget(budget: Budget):
 
     ### Response
     - `category`: grandparent category name
-    - `budgeted_amount`: integer suggesting the maximum the user should spend 
+    - `budgeted_amount`: integer suggesting the maximum the user should spend
     in that catgory next month
 
     """
 
-    # Get the JSON object from the POST request body and cast it to a python dictionary
+    # Get the JSON object from the request body and cast it to a dictionary
     input_dict = budget.to_dict()
     bank_account_id = input_dict['bank_account_id']
     monthly_savings_goal = input_dict['monthly_savings_goal']
@@ -74,18 +74,22 @@ async def future_budget(budget: Budget):
     # predict budget using time series model
     pred_bud = user.predict_budget()
 
-    # if a fatal error was encountered while generating the budget, return no budget along with the warning list
+    # if a fatal error was encountered while generating the budget,
+    # return no budget along with the warning list
     if user.warning == 2:
         return json.dumps([None, user.warning_list])
 
     # modify budget based on savings goal
-    modified_budget = user.budget_modifier(pred_bud, monthly_savings_goal=monthly_savings_goal)
+    modified_budget = user.budget_modifier(
+        pred_bud, monthly_savings_goal=monthly_savings_goal)
 
-    # if a fatal error was encountered while modifying the budget, return no budget along with the warning list
+    # if a fatal error was encountered while modifying the budget,
+    # return no budget along with the warning list
     if user.warning == 2:
         return json.dumps([None, user.warning_list])
 
-    # if a non-fatal warning was encountered in predict_budget() or budget_modifier(), return the budget along with the warning list
+    # if a non-fatal warning was encountered in predict_budget() or
+    # budget_modifier(), return the budget along with the warning list
     elif user.warning == 1:
         return json.dumps([modified_budget, user.warning_list])
 
@@ -96,18 +100,21 @@ async def future_budget(budget: Budget):
 async def current_month_spending(bank_account_id: int, day_of_month: Optional[int] = None, categories: List[str] = Query(None)):
 
     transactions = load_user_data(bank_account_id)
-    
+
     if len(transactions) == 0:
         raise HTTPException(
-            status_code=404, detail=f"Bank Account ID, {bank_account_id}, doesn't exist")
-        
+            status_code=404, 
+            detail=f"Bank Account ID, {bank_account_id}, doesn't exist")
+
     if not categories:
         raise HTTPException(
-            status_code=404, detail=f"Please provide the categories that were in the user's budget")
-    
+            status_code=404, 
+            detail=f"Please provide the categories that were in the user's budget")
+
     user = User(transactions)
 
     if day_of_month:
-        return user.current_month_spending(fixed_categories=categories, date_cutoff=day_of_month)
+        return user.current_month_spending(fixed_categories=categories,
+                                           date_cutoff=day_of_month)
     else:
         return user.current_month_spending(fixed_categories=categories)
