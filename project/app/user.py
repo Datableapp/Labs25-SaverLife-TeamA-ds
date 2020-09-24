@@ -733,8 +733,17 @@ class User():
         spending transactions.
         An int can be passed into the optional date_cutoff parameter to get 
         history up to but not including the date specified.
+
+        Parameters:
+              fixed_categories (dictionary): dictionary of categories that will be explicitly listed in the output regardless of current spending amount
+              current (bool): determines if "current" refers to the current month or the most recent month with user transactions. Defaults to the first option.
+              date_cutoff (int): if set, this will remove any transactions beyond the cutoff date. Primarily used to test/simulate user progression.
+
+        Returns:
+            Python dictionary of spending recommendations.
         """
         if current:
+            # get the current year and month
             cur_year = dt.datetime.now().year
             cur_month = dt.datetime.now().month
         if not current:
@@ -776,18 +785,18 @@ class User():
         # use trimmer to combine small categories into a misc. category
         dict_trimmer(trimmed_budget, threshold_1=threshold_1, in_place=True)
 
-        # Loop through grouped_dict and add it's entries to trimmed_budget.
+        # loop through grouped_dict and add it's entries to trimmed_budget.
         for cat in grouped_dict:
-            # If the category was aleady added to trimmed budget, pass
-            # Cannot use trimmed_budget.keys() since some categories were removed and combined into Misc.
+            # if the category was aleady added to trimmed budget, pass
+            # cannot use trimmed_budget.keys() since some categories were removed and combined into Misc.
             if cat in moved:
                 pass
             else:
-                # If the category was not moved, but exists in both dictionaries, then add them together
-                # This only happens when Misc. is a fixed category and the trimmer generates another Misc. category
+                # if the category was not moved, but exists in both dictionaries, then add them together
+                # this only happens when Misc. is a fixed category and the trimmer generates another Misc. category
                 if cat in trimmed_budget:
                     trimmed_budget[cat] += grouped_dict[cat]
-                # Otherwise, we simply copy the entry into our trimmed_budget
+                # itherwise, we simply copy the entry into our trimmed_budget
                 else:
                     trimmed_budget[cat] = grouped_dict[cat]
 
@@ -796,7 +805,7 @@ class User():
             # if the user has not spent money in the category this month:
             if category not in trimmed_budget:
                 # add it to the grouped_dict with $0 amount to show money hasn't
-                # . been spent in that category yet
+                # been spent in that category yet
                 trimmed_budget[category] = 0
 
         return trimmed_budget
