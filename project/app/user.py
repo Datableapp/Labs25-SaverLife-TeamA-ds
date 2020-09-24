@@ -9,6 +9,7 @@ from math import ceil
 from datetime import timedelta
 from statsmodels.tsa.api import SimpleExpSmoothing, ExponentialSmoothing
 
+
 def get_last_time_period(transaction_df, time_period='week'):
     """
     Given a dataframe of transactions and dates and a desired timeframe,
@@ -39,11 +40,12 @@ def get_last_time_period(transaction_df, time_period='week'):
     else:
         raise ValueError(
             f"time_period must be one of 'day, week, month, year, or all'. Got {time_period} instead.")
-    
+
     # subset the data based on the time frame
     subset = transaction_df[transaction_df['date'] > cutoff]
 
     return subset
+
 
 def monthly_spending_totals(user_expenses_df, num_months=12, category='grandparent_category_name'):
     """
@@ -64,7 +66,7 @@ def monthly_spending_totals(user_expenses_df, num_months=12, category='grandpare
     while ticker < num_months:
         # on first iteration
         if ticker == 0:
-            
+
             # if cur_month is January
             if cur_month == 1:
                 # set prev month to December
@@ -140,10 +142,11 @@ def monthly_spending_totals(user_expenses_df, num_months=12, category='grandpare
 
     return prev
 
-def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
+
+def trimmer(budget_df, threshold_1=10, threshold_2=0, trim_name='mean', name='Misc.', in_place=True, save=False):
     """
     Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
-    
+
     A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
     An optional second threshold can be set to check whether or not the new row should be added or discarded.
     By default, the function will trim the 'mean' column. A different column can be specified by setting the 'trim_name' parameter.
@@ -166,7 +169,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
 
     # Get budget categories
     categories = budget_df.index
-    
+
     # Track the eliminated categories and the sum of their means
     trimmed_cats = []
     trimmed_sum = 0
@@ -180,7 +183,7 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
             trimmed_sum += mean
             trimmed_cats.append(cat)
 
-            budget_df.drop(index = cat, inplace=True)
+            budget_df.drop(index=cat, inplace=True)
 
     # If trimmed_sum is greater than threshold_2, then we add a new row containing
     # the sum of the means from the deleted rows
@@ -191,10 +194,11 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
     # If save = True, then we return both the budget_df and the deleted categories
     if save:
         return (budget_df, trimmed_cats)
-    
+
     return budget_df
 
-def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
+
+def dict_trimmer(budget, threshold_1=10, threshold_2=0, name='Misc.', in_place=True, save=False):
     """
     Given a spending budget dictionary, combine rows with a mean below a given threshold into a single row.
 
@@ -208,20 +212,20 @@ def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_pla
     # Use a copy if in_place is set to false
     if in_place == False:
         budget = budget.copy()
-    
-    # If thresholds were set to fractions, then calculate fraction of total 
+
+    # If thresholds were set to fractions, then calculate fraction of total
     # spending and re-assign thresholds
     if 0 < threshold_1 < 1:
         total_budget = 0
         for cat in budget:
-          total_budget += budget[cat]
+            total_budget += budget[cat]
         threshold_1 *= total_budget
     if 0 < threshold_2 < 1:
         total_budget = 0
         for cat in budget:
-          total_budget += budget[cat]
+            total_budget += budget[cat]
         threshold_2 *= total_budget
-    
+
     # Get budget categories. Since we're modifying the budget dictioanry in the below loop, we convert to list or use a copy of budget.
     categories = list(budget.keys())
 
@@ -237,17 +241,18 @@ def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_pla
             trimmed_sum += budget_amount
             trimmed_cats.append(cat)
             del budget[cat]
-    
+
     # If trimmed_sum is greater than threshold_2, then we add a new row containing
     # the sum of the means from the deleted rows
     if trimmed_sum > threshold_2:
         budget[name] = trimmed_sum
-    
+
     # If save = True, then we return both the budget and the deleted categories
     if save:
         return (budget, trimmed_cats)
-    
+
     return budget
+
 
 def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
     """
@@ -258,11 +263,12 @@ def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
 
     # for each category in the dataframe, calculate the number of non-zero rows.
     for cat in total_spending_by_month_df.columns:
-      total_nonzeros = len(total_spending_by_month_df) - len(total_spending_by_month_df[total_spending_by_month_df[cat] == 0])
-      
-      # if the number of non-zero rows falls below min_frequency, drop the column
-      if total_nonzeros <= min_frequency:
-        total_spending_by_month_df.drop(columns=cat, inplace=True)
+        total_nonzeros = len(total_spending_by_month_df) - len(
+            total_spending_by_month_df[total_spending_by_month_df[cat] == 0])
+
+        # if the number of non-zero rows falls below min_frequency, drop the column
+        if total_nonzeros <= min_frequency:
+            total_spending_by_month_df.drop(columns=cat, inplace=True)
 
 
 class User():
@@ -279,14 +285,14 @@ class User():
         self.name = name
         if not self.name:
             self.name = 'Test User'
-        self.data = data 
+        self.data = data
         self.expenses = self.data[(self.data['grandparent_category_name'] != 'Transfers') & (
             self.data['amount_dollars'] > 0)]
         self.show = show
         self.past_months = 12
         self.hole = hole
         self.misc = []
-        self.warning = 0 
+        self.warning = 0
         self.warning_list = []
 
     def get_user_data(self):
@@ -295,7 +301,7 @@ class User():
         """
         return self.data
 
-    def categorical_spending(self, time_period='week', category='grandparent_category_name', color_template = 'Magenta', trim = True):
+    def categorical_spending(self, time_period='week', category='grandparent_category_name', color_template='Magenta', trim=True):
         """
         Returns jsonified plotly object which is a pie chart of recent transactions for the User.
 
@@ -310,20 +316,22 @@ class User():
               Plotly object of a pie chart in json
         """
 
-        category='grandparent_category_name'
+        category = 'grandparent_category_name'
         user_expenses = self.expenses.copy()
-        
+
         # get a list of categories
         cat_count = self.expenses[category].value_counts(normalize=True)
 
         # filter down to recent transactions
         user_expenses = get_last_time_period(user_expenses, time_period)
-        
+
         # combine transactions by category (required so that each color matches 1 category/label)
-        user_expense_grouped = user_expenses.groupby(['grandparent_category_name']).sum()
+        user_expense_grouped = user_expenses.groupby(
+            ['grandparent_category_name']).sum()
 
         # for categories that fall under 2% of transactions, group them into the "Other" category
-        trimmer(user_expense_grouped, threshold_1=0.02, trim_name='amount_dollars')
+        trimmer(user_expense_grouped, threshold_1=0.02,
+                trim_name='amount_dollars')
 
         # get list of colors from the plotly's color templates
         color_list = eval('px.colors.sequential.' + color_template)
@@ -331,30 +339,32 @@ class User():
         # create pie/donut chart
         fig = go.Figure(data=[go.Pie(labels=user_expense_grouped.index,
                                      values=user_expense_grouped['amount_dollars'],
-                                     hole = self.hole,
+                                     hole=self.hole,
                                      marker_colors=color_list
                                      )])
 
-
         # force percents to be inside donut bars
-        fig.update_traces(textposition='inside', textfont_size=14, textinfo="percent")
-        
+        fig.update_traces(textposition='inside',
+                          textfont_size=14, textinfo="percent")
+
         # add outline to graph objects
-        fig.update_traces(marker=dict(line=dict(color='#626262', width=1.5)))       
-        
+        fig.update_traces(marker=dict(line=dict(color='#626262', width=1.5)))
+
         # add title based on current time period being viewed
-        if time_period == 'all':     
-          fig.update_layout(title={"text" : f"Spending by Category", "x":0.5, "y":0.9}, font_size=16,)
+        if time_period == 'all':
+            fig.update_layout(
+                title={"text": f"Spending by Category", "x": 0.5, "y": 0.9}, font_size=16,)
 
         else:
-          fig.update_layout(title={"text" : f"Spending by Category for the Last {time_period.capitalize()}", "x":0.5, "y":0.9}, font_size=16,)
+            fig.update_layout(title={
+                              "text": f"Spending by Category for the Last {time_period.capitalize()}", "x": 0.5, "y": 0.9}, font_size=16,)
 
         # style the hover labels
         fig.update_layout(
-          hoverlabel=dict(
-          bgcolor="white", 
-          font_size=16, 
-          font_family="Rockwell"))
+            hoverlabel=dict(
+                bgcolor="white",
+                font_size=16,
+                font_family="Rockwell"))
 
         # style the legend
         fig.update_layout(
@@ -381,7 +391,7 @@ class User():
                           height=600,
                           plot_bgcolor='rgba(0, 0, 0, 0)',
                           paper_bgcolor='rgba(0, 0, 0, 0)')
-        
+
         if self.show:
             fig.show()
         return fig.to_json()
@@ -397,7 +407,8 @@ class User():
         user_transaction_subset = self.data[["date", "amount_dollars"]]
 
         # filter down to desired timeframe
-        user_transaction_subset = get_last_time_period(user_transaction_subset, time_period)
+        user_transaction_subset = get_last_time_period(
+            user_transaction_subset, time_period)
 
         # prepare data for plotting
         user_transaction_subset.set_index("date", inplace=True)
@@ -407,53 +418,56 @@ class User():
         total_each_day['amount_flipped'] = total_each_day['amount_dollars'] * -1
 
         # generate the plot figure
-        fig = go.Figure(data=go.Scatter(x=total_each_day.index, 
-                                y=total_each_day['amount_flipped'],
-                                hovertext=round(total_each_day['amount_flipped'],2),
-                                hoverinfo="text",
-                                marker=dict(
-                                color='rgb(192,16,137)',
-                                size=10,
-                                line=dict(
-                                    color='Black',
-                                    width=2
-                                  ))))
+        fig = go.Figure(data=go.Scatter(x=total_each_day.index,
+                                        y=total_each_day['amount_flipped'],
+                                        hovertext=round(
+                                            total_each_day['amount_flipped'], 2),
+                                        hoverinfo="text",
+                                        marker=dict(
+                                            color='rgb(192,16,137)',
+                                            size=10,
+                                            line=dict(
+                                                color='Black',
+                                                width=2
+                                            ))))
         # style the hover labels
         fig.update_layout(width=1000, height=500,
                           hoverlabel=dict(
-                          namelength=-1,
-                          bgcolor="white",
-                          bordercolor='black',
-                          font_size=16, 
-                          font_family="Rockwell",
+                              namelength=-1,
+                              bgcolor="white",
+                              bordercolor='black',
+                              font_size=16,
+                              font_family="Rockwell",
                           ))
         # add a horizontal line between debt and profit
-        fig.add_shape( 
-        type="line", line_color="salmon", line_width=3, opacity=0.5, line_dash="solid",
-        x0=0, x1=1, xref="paper", y0=0, y1=0, yref="y")
+        fig.add_shape(
+            type="line", line_color="salmon", line_width=3, opacity=0.5, line_dash="solid",
+            x0=0, x1=1, xref="paper", y0=0, y1=0, yref="y")
 
         # update title based on time period being viewed
         if time_period == 'all':
-          fig.update_layout(title={"text" : f"Money Flow", "x":0.5, "y":0.9})
-                            
-        else:
-          fig.update_layout(title={"text" : f"Daily Net Income for the Last {time_period.capitalize()}", "x":0.5, "y":0.9})
+            fig.update_layout(
+                title={"text": f"Money Flow", "x": 0.5, "y": 0.9})
 
-        # label and style the x and y axis                              
-        fig.update_layout(                       
-          xaxis_title='Date',
-          yaxis_title='Net Income ($)',
-          font_size=16,
-          template='presentation',
-          plot_bgcolor = 'rgba(0, 0, 0, 0)',
-          paper_bgcolor = 'rgba(0, 0, 0, 0)')
-  
+        else:
+            fig.update_layout(title={
+                              "text": f"Daily Net Income for the Last {time_period.capitalize()}", "x": 0.5, "y": 0.9})
+
+        # label and style the x and y axis
+        fig.update_layout(
+            xaxis_title='Date',
+            yaxis_title='Net Income ($)',
+            font_size=16,
+            template='presentation',
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)')
+
         if self.show:
-          fig.show()
+            fig.show()
 
         return fig.to_json()
 
-    def bar_viz(self, time_period='week', category="grandparent_category_name", color_template = 'Greens_r'):
+    def bar_viz(self, time_period='week', category="grandparent_category_name", color_template='Greens_r'):
         """
         Uses plotly express
         Returns jsonified plotly object which is a bar chart of recent transactions for the User.
@@ -501,7 +515,8 @@ class User():
         if time_period == 'all':
             fig.update_layout(title={'text': "Daily Spending by Category "})
         else:
-            fig.update_layout(title={'text': f"Daily Spending by Category for the Last {time_period.capitalize()}"})
+            fig.update_layout(title={
+                              'text': f"Daily Spending by Category for the Last {time_period.capitalize()}"})
 
         fig.update_layout(legend=dict(
             yanchor="top",
@@ -525,33 +540,33 @@ class User():
         # add total $ amounts above bars depending on time period
         if time_period == 'week':
 
-          for k, v in annotations.items():
-            fig.add_annotation(
-                text=f'    <b>${round(v)}</b>',
-                font_size=16,
-                x=k,
-                y=v,
-                arrowcolor='rgba(0,0,0,0)',
-            )
+            for k, v in annotations.items():
+                fig.add_annotation(
+                    text=f'    <b>${round(v)}</b>',
+                    font_size=16,
+                    x=k,
+                    y=v,
+                    arrowcolor='rgba(0,0,0,0)',
+                )
 
         if time_period == 'month':
 
-          for k, v in annotations.items():
-            fig.add_annotation(
-                text=f'    <b>${round(v)}</b>',
-                font_size=10,
-                x=k,
-                y=v,
-                arrowcolor='rgba(0,0,0,0)',
-            )
+            for k, v in annotations.items():
+                fig.add_annotation(
+                    text=f'    <b>${round(v)}</b>',
+                    font_size=10,
+                    x=k,
+                    y=v,
+                    arrowcolor='rgba(0,0,0,0)',
+                )
 
         if self.show:
             fig.show()
 
         return fig.to_json()
-    
+
     def predict_budget(self):
-        
+
         # calculate number of transactions in user's expense data
         num_transactions = len(self.expenses)
 
@@ -562,7 +577,7 @@ class User():
             self.warning_list.append(warning)
             self.warning = 2
             return None
-        
+
         # WARNING (Non-Fatal)
         # If user has less than 100 transactions, add a warning about poor prediction quality
         elif num_transactions < 100:
@@ -571,11 +586,12 @@ class User():
             self.warning = 1
 
         # calculate how many days does the user's transaction history cover
-        transaction_history = (max(self.expenses['date']) - min(self.expenses['date'])).days
+        transaction_history = (
+            max(self.expenses['date']) - min(self.expenses['date'])).days
 
         # WARNING (Fatal)
         # If transaction history < 2 months of data (60 days), add a warning about poor predictions
-        if  transaction_history < 60:
+        if transaction_history < 60:
             warning = "Your user history does not go back more than 2 months. It is likely this will negatively impact the quality of our budget recommendations."
             self.warning_list.append(warning)
             self.warning = 2
@@ -587,31 +603,32 @@ class User():
             warning = "Your user history does not go back more than 6 months. It is likely this will negatively impact the quality of our budget recommendations."
             self.warning_list.append(warning)
             self.warning = 1
-        
 
         # get dataframe of average spending per category over last X months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
-        
+
         # sets minimum # months which financial activity occured to 10%
         min_frequency = int(self.past_months/10)
-        drop_low_frequency_categories(total_spending_by_month_df, min_frequency=min_frequency)
-        
+        drop_low_frequency_categories(
+            total_spending_by_month_df, min_frequency=min_frequency)
+
         # Loop through spending categories and forecast spending for the coming month.
         budget = {}
         budget_amount = 0
         for cat in total_spending_by_month_df.columns:
-          fit1 = SimpleExpSmoothing(np.asarray(total_spending_by_month_df[cat])).fit(smoothing_level=0.6,optimized=False)
-          prediction = fit1.forecast(1)[0]
-          budget_amount += prediction
-          budget[cat] = round(prediction)
-
+            fit1 = SimpleExpSmoothing(np.asarray(total_spending_by_month_df[cat])).fit(
+                smoothing_level=0.6, optimized=False)
+            prediction = fit1.forecast(1)[0]
+            budget_amount += prediction
+            budget[cat] = round(prediction)
 
         # Combine small spending categories into an "other" category
-        budget, self.misc = dict_trimmer(budget, threshold_1=0.05, in_place=False, save=True)
+        budget, self.misc = dict_trimmer(
+            budget, threshold_1=0.05, in_place=False, save=True)
 
         return budget
-    
+
     def budget_modifier(self, budget, monthly_savings_goal=50):
 
         # get total budget
@@ -622,59 +639,64 @@ class User():
         # WARNING (Fatal)
         # if savings goal > total budget, set savings goal to 0 and flag warning
         if monthly_savings_goal > total_budget:
-            self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
+            self.warning_list.append(
+                f"Your savings goal of {monthly_savings_goal} is larger than your budget of {total_budget}. Please enter a lower savings goal.")
             self.warning = 2
             return None
-        
+
         # WARNING (Non-Fatal)
         # if savings goal > 30% of total budget, add warning about poor budget recommendation
         if monthly_savings_goal > total_budget * 0.3:
-            self.warning_list.append( f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
+            self.warning_list.append(
+                f"Your savings goal of {monthly_savings_goal} is more than 30% of your total budget of {total_budget}. Consider entering a lower savings goal.")
             self.warning = 1
 
         # get dataframe of average spending per category over last self.past_months
         total_spending_by_month_df = monthly_spending_totals(
             self.expenses, num_months=self.past_months)
-        
+
         # Add a new misc. category by summing all columns contained in self.misc (i.e. the columns that were combined by the trimmer in predict_budget() )
-        total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose().sum()
+        total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose(
+        ).sum()
 
         # Drop the columns that were combined into the "Misc." column
-        total_spending_by_month_df.drop(columns = self.misc, inplace=True)
+        total_spending_by_month_df.drop(columns=self.misc, inplace=True)
 
         # For each category in our budget, calculate the standard deviation for its monthly spending
         # Create a dictionary where each key is a standard deviation and each value is the corresponding category
         standard_devs = {}
         for cat in budget:
-          std = total_spending_by_month_df[cat].std()
-          standard_devs[std] = cat
+            std = total_spending_by_month_df[cat].std()
+            standard_devs[std] = cat
 
         # We set the number of discretionary categories equal to half the number of total categories rounded up to the nearest whole number
-        num_discretionary = ceil( len(budget)/2 )
+        num_discretionary = ceil(len(budget)/2)
 
-        # get a list of the top std scores 
-        top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
-        
+        # get a list of the top std scores
+        top_stds = sorted(standard_devs.keys(), reverse=True)[
+            0:num_discretionary]
+
         # get the total budget of all discretionary categories
         total_disc = sum([budget[standard_devs[score]] for score in top_stds])
-        
+
         # If savings goal > total_disc, then we add more categories to the list until we have enough
         while monthly_savings_goal > total_disc:
             num_discretionary += 1
-            top_stds = sorted(standard_devs.keys(), reverse=True)[0:num_discretionary]
+            top_stds = sorted(standard_devs.keys(), reverse=True)[
+                0:num_discretionary]
             total_disc = [budget[standard_devs[score]] for score in top_stds]
 
         # For the top std scores, we find the corresponding budget category, calculate a scaling factor, scale the monthly_savings_goal by that factor, and subtract the result from that category's budget.
-        # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary". 
+        # This has the effect of distributing the monly_savings_goal over all discretionary categories with higher weight given to categories that are "more discretionary".
         for score in top_stds:
-          category = standard_devs[score]
-          scaling_factor = score / sum(top_stds)
-          scaled_savings_goal = round( monthly_savings_goal * scaling_factor )
-          budget[category] -= scaled_savings_goal
+            category = standard_devs[score]
+            scaling_factor = score / sum(top_stds)
+            scaled_savings_goal = round(monthly_savings_goal * scaling_factor)
+            budget[category] -= scaled_savings_goal
 
         return budget
-    
-    def current_month_spending(self, fixed_categories, current=True, date_cutoff = None):
+
+    def current_month_spending(self, fixed_categories, current=True, date_cutoff=None):
         """
         Return a user's spending history for their most recent month containing
         spending transactions.
@@ -688,22 +710,22 @@ class User():
             # get the year and month of the most recent transactions
             cur_year = self.expenses['date'].max().year
             cur_month = self.expenses['date'].max().month
-            
+
         # filter user expenses down to the most recent month
         user_exp = self.expenses.copy()
         cur_month_expenses = user_exp[(user_exp['date'].dt.month == cur_month) &
                                       (user_exp['date'].dt.year == cur_year)]
-        
+
         # If a cutoff has been specified, consider only the days in the month up to and including the cutoff
         if date_cutoff:
-            cur_month_expenses = cur_month_expenses[ cur_month_expenses['date'].dt.day <= date_cutoff]
-        
+            cur_month_expenses = cur_month_expenses[cur_month_expenses['date'].dt.day <= date_cutoff]
+
         # get total spending by category
         grouped_expenses = cur_month_expenses.groupby(
             ['grandparent_category_name']).sum()
         grouped_expenses = grouped_expenses.round({'amount_dollars': 2})
         grouped_dict = dict(grouped_expenses['amount_dollars'])
-        
+
         trimmed_budget = {}
         total_budget = 0
         moved = []
@@ -716,13 +738,13 @@ class User():
                 trimmed_budget[category] = grouped_dict[category]
                 # Track what categories are added. So when we combine the 2 dictionaries (fixed and unfixed), we know not to count these twice.
                 moved.append(category)
-              
+
         # categories with amounts below this threshold will be combined into a "misc." category
         threshold_1 = total_budget*0.03
-        
+
         # use trimmer to combine small categories into a misc. category
         dict_trimmer(trimmed_budget, threshold_1=threshold_1, in_place=True)
-        
+
         # Loop through grouped_dict and add it's entries to trimmed_budget.
         for cat in grouped_dict:
             # If the category was aleady added to trimmed budget, pass
@@ -737,13 +759,13 @@ class User():
                 # Otherwise, we simply copy the entry into our trimmed_budget
                 else:
                     trimmed_budget[cat] = grouped_dict[cat]
-                
+
         # loop through fixed (budgeted) categories
         for category in fixed_categories:
             # if the user has not spent money in the category this month:
             if category not in trimmed_budget:
                 # add it to the grouped_dict with $0 amount to show money hasn't
-                #. been spent in that category yet
+                # . been spent in that category yet
                 trimmed_budget[category] = 0
-                
+
         return trimmed_budget
