@@ -313,13 +313,12 @@ class User():
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
-              category (str): category type to return
-                              (grandparent_category_name (default),
-                              parent_category_name,
-                              category_name)
+              category (str): the level of spending category to use. 
+              color_template (str): the plotly sequential color template to use.
+              trim (bool): trim and combing small spending categories into a single category
 
         Returns:
-              Plotly object of a pie chart in json
+              Plotly object of a pie chart in json format
         """
 
         category = 'grandparent_category_name'
