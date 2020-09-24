@@ -251,12 +251,16 @@ def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_pla
 
 def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
     """
-    Checks the output of total_spending_by_month_df for instances where
-    the column contains a certain # of totals (min_frequency) and 
-    overrides that value with zero.
+    Given a dataframe of budget categories aggregated by some time frame, drop columns with a number of zero values equal to or below the minimum frequency
+
+    By default, the minimum frequency is 1 values. This can be changed using the min_frequency parameter.
     """
+
+    # for each category in the dataframe, calculate the number of non-zero rows.
     for cat in total_spending_by_month_df.columns:
       total_nonzeros = len(total_spending_by_month_df) - len(total_spending_by_month_df[total_spending_by_month_df[cat] == 0])
+      
+      # if the number of non-zero rows falls below min_frequency, drop the column
       if total_nonzeros <= min_frequency:
         total_spending_by_month_df.drop(columns=cat, inplace=True)
 
