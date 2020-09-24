@@ -11,8 +11,10 @@ from statsmodels.tsa.api import SimpleExpSmoothing, ExponentialSmoothing
 
 def get_last_time_period(transaction_df, time_period='week'):
     """
-    Given a dataframe of transactions + dates and a desired timeframe,
+    Given a dataframe of transactions and dates and a desired timeframe,
     return the dataframe containing only transactions within that time frame.
+
+    By default, the time frame is a week. This can be changed using the "time_period" parameter.
     If time_period is set to 'all', return the dataframe sorted by date
     """
 
@@ -22,10 +24,8 @@ def get_last_time_period(transaction_df, time_period='week'):
     transaction_df = transaction_df.sort_values(by=['date'])
     # grab the lastest date recorded
     latest_time = transaction_df['date'].iloc[-1]
-    """
-    based on the time period, establish a cutoff in order to subset
-    the data
-    """
+
+    # based on the time period, establish a cutoff in order to subset the data
     if time_period == 'day':
         cutoff = latest_time - timedelta(days=1)
     elif time_period == 'month':
@@ -39,9 +39,9 @@ def get_last_time_period(transaction_df, time_period='week'):
     else:
         raise ValueError(
             f"time_period must be one of 'day, week, month, year, or all'. Got {time_period} instead.")
+    
     # subset the data based on the time frame
     subset = transaction_df[transaction_df['date'] > cutoff]
-    # return the subsetted data
 
     return subset
 
