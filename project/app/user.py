@@ -183,21 +183,22 @@ def trimmer(budget_df, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name
     
     return budget_df
 
-def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, trim_name = 'mean', name = 'Misc.', in_place = True, save = False):
+def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, name = 'Misc.', in_place = True, save = False):
     """
-    Given a dataframe of average spending history, combine rows with a mean below a given threshold into a single row.
+    Given a spending budget dictionary, combine rows with a mean below a given threshold into a single row.
+
     A threshold based on a percentage of total spending can be used by setting threshold_1 to a value between 0 and 1
     An optional second threshold can be set to check whether or not the new row should be added or discarded.
-    By default, the function will trim the 'mean' column. A different column can be specified by setting the 'trim_name' parameter.
     The new row's name will default to "Misc." but can be set using the 'name' parameter.
-    By default, this function will modify the dataframe in place. Set in_place to False to disable this.
+    By default, this function will modify the dictionary in place. Set in_place to False to disable this.
     The discarded rows can be returned as a list by setting save to True. The return object will become a tuple
     with the first entry being the dataframe and the second entry being the list of discarded categories.
     """
     # Use a copy if in_place is set to false
     if in_place == False:
         budget = budget.copy()
-    # If thresholds were set to fractions, then calculate fraction of total average
+    
+    # If thresholds were set to fractions, then calculate fraction of total 
     # spending and re-assign thresholds
     if 0 < threshold_1 < 1:
         total_budget = 0
@@ -209,11 +210,14 @@ def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, trim_name = 'mean', na
         for cat in budget:
           total_budget += budget[cat]
         threshold_2 *= total_budget
+    
     # Get budget categories. Since we're modifying the budget dictioanry in the below loop, we convert to list or use a copy of budget.
     categories = list(budget.keys())
+
     # Track the eliminated categories and the sum of their budgeted amounts
     trimmed_cats = []
     trimmed_sum = 0
+
     # For each category, check if the budget_amount is below threshold_1
     # If it is, update trimmed_cats and trimmed_sum then delete the row
     for cat in categories:
@@ -222,13 +226,16 @@ def dict_trimmer(budget, threshold_1=10, threshold_2 = 0, trim_name = 'mean', na
             trimmed_sum += budget_amount
             trimmed_cats.append(cat)
             del budget[cat]
+    
     # If trimmed_sum is greater than threshold_2, then we add a new row containing
     # the sum of the means from the deleted rows
     if trimmed_sum > threshold_2:
         budget[name] = trimmed_sum
+    
     # If save = True, then we return both the budget and the deleted categories
     if save:
         return (budget, trimmed_cats)
+    
     return budget
 
 def drop_low_frequency_categories(total_spending_by_month_df, min_frequency=1):
