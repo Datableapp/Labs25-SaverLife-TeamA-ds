@@ -407,6 +407,9 @@ class User():
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
+
+        Returns:
+              Plotly express object of a line chart in json format
         """
         # subset data down to date and transaction amount
         user_transaction_subset = self.data[["date", "amount_dollars"]]
@@ -475,17 +478,15 @@ class User():
 
     def bar_viz(self, time_period='week', category="grandparent_category_name", color_template='Greens_r'):
         """
-        Uses plotly express
         Returns jsonified plotly object which is a bar chart of recent transactions for the User.
 
         Parameters:
-            time_period (str): time frame used to define "recent" transactions
-            category (str): category type to return
-                            (grandparent_category_name (default),
-                            parent_category_name,
-                            category_name)
+              time_period (str): time frame used to define "recent" transactions
+              category (str): the level of spending category to use. 
+              color_template (str): the plotly sequential color template to use.
+
         Returns:
-            Plotly object of a bar chart in json
+            Plotly object of a bar chart in json format
         """
         # subset the data using the get_last_time_period method
         subset = get_last_time_period(self.expenses, time_period)
