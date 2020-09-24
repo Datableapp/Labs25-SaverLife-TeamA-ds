@@ -403,7 +403,7 @@ class User():
 
     def money_flow(self, time_period='week'):
         """
-        Returns jsonified plotly object which is a line chart depicting transactions over time for the User.
+        Returns jsonified plotly object which is a line chart depicting net income over time for the User.
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
@@ -444,6 +444,7 @@ class User():
                               font_size=16,
                               font_family="Rockwell",
                           ))
+
         # add a horizontal line between debt and profit
         fig.add_shape(
             type="line", line_color="salmon", line_width=3, opacity=0.5, line_dash="solid",
