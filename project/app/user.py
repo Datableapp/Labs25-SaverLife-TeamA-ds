@@ -40,8 +40,7 @@ def get_last_time_period(transaction_df, time_period='week'):
         return transaction_df
     else:
         raise ValueError(
-            f"time_period must be one of 'day, week, month, year, or all'. Got
-            {time_period} instead.")
+            f"time_period must be one of 'day, week, month, year, or all'. Got {time_period} instead.")
 
     # subset the data based on the time frame
     subset = transaction_df[transaction_df['date'] > cutoff]
@@ -223,8 +222,12 @@ def dict_trimmer(budget, threshold_1=10, threshold_2=0, name='Misc.', in_place=T
     with the first entry being the dataframe and the second entry being the list of discarded categories.
     """
     # use a copy if in_place is set to false
+
     if not in_place:
         budget = budget.copy()
+
+    print("")
+    print(f"budget: {budget}")
 
     # if thresholds were set to fractions, then calculate fraction of total
     # spending and re-assign thresholds
@@ -306,7 +309,7 @@ class User():
         warning_list (list): list used to contain warning messaged
     """
 
-    def __init__(self, data, name=None, show=False, hole=0.8):
+    def __init__(self, data, name=None, show=False, hole=0.8, cat_column='parent_category_name'):
         """
         Constructor for the User class.
 
@@ -333,6 +336,7 @@ class User():
         self.misc = []
         self.warning = 0
         self.warning_list = []
+        self.cat_column = cat_column
 
     def get_user_data(self):
         """
@@ -673,7 +677,10 @@ class User():
 
         # get dataframe of average spending per category over last X months
         total_spending_by_month_df = monthly_spending_totals(
-            self.expenses, num_months=self.past_months)
+            self.expenses, num_months=self.past_months, category=self.cat_column)
+        
+        print("")
+        print(f'total_spending_by_month_df {total_spending_by_month_df.columns}')
 
         # sets minimum # months which financial activity occured to 10%
         min_frequency = int(self.past_months/10)
@@ -690,6 +697,8 @@ class User():
             prediction = fit1.forecast(1)[0]
             budget_amount += prediction
             budget[cat] = round(prediction)
+
+        print(f'budget: {budget}')
 
         # combine small spending categories into a miscellaneous category
         # store the names of the small categories in self.misc so that the
@@ -746,10 +755,15 @@ class User():
         # get dataframe of average spending per category over the
         # last self.past_months
         total_spending_by_month_df = monthly_spending_totals(
-            self.expenses, num_months=self.past_months)
+            self.expenses, num_months=self.past_months, category=self.cat_column)
 
         # create a new misc. category by combining the columns in self.misc
         # (i.e. the columns combined by the trimmer in predict_budget)
+        print("")
+        print(f'total_spending_by_month_df: {total_spending_by_month_df.columns}')
+        print("")
+        print(f'self.misc: {self.misc}')
+        print("")
         total_spending_by_month_df["Misc."] = total_spending_by_month_df[self.misc].transpose().sum()
 
         # drop the columns that were combined into the "Misc." column
@@ -840,7 +854,7 @@ class User():
 
         # get total spending by category
         grouped_expenses = cur_month_expenses.groupby(
-            ['grandparent_category_name']).sum()
+            [self.cat_column]).sum()
         grouped_expenses = grouped_expenses.round({'amount_dollars': 2})
         grouped_dict = dict(grouped_expenses['amount_dollars'])
 

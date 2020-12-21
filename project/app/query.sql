@@ -8,6 +8,8 @@ SELECT
     merchant_zip,
     category_id,
     purpose,
+    left(regexp_replace(trim(regexp_replace(merchant_name,
+      '[^[:alpha:]\s]', ' ', 'g')), '\s+', ' ', 'g'), 25) merchant_name,
     Case when category_id::int in (18001001, 18001002, 18001003, 18001004, 18001005, 18001006, 18001007,
                                    18001008, 18001009, 18001010, 18073001, 18073002, 18073003, 18073004,
                                    18008001, 12002001, 12002002, 12001000, 12002000, 12003000, 12005000,

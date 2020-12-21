@@ -36,7 +36,7 @@ def load_user_data(bank_id):
     df = pd.read_sql(query, conn1)
     conn1.close()
     df = df[['category_id','amount_cents','date', 'grandparent_category_name',
-             'parent_category_name']]
+             'parent_category_name', 'merchant_name']]
     df['category_name'] = df.parent_category_name
     df['amount_dollars'] = df['amount_cents'] / 100
     df.drop(columns=["amount_cents"], inplace=True)

@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
+
 class Budget(BaseModel):
     """Use this data model to parse the request body JSON."""
 
@@ -68,8 +69,11 @@ async def future_budget(budget: Budget):
 
     transactions = load_user_data(bank_account_id)
 
-    # instantiate the user
-    user = User(transactions)
+    # instantiate the user and chooses category column
+    # user = User(transactions, cat_column='grandparent_category_name')
+    # user = User(transactions, cat_column='parent_category_name')
+    user = User(transactions, cat_column='merchant_name')
+
 
     # predict budget using time series model
     pred_bud = user.predict_budget()
